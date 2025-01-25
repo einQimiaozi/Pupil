@@ -1,0 +1,9 @@
+/build
+/x64
+/Pupil
+.vs
+.git
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
