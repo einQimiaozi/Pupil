@@ -27,4 +27,14 @@ namespace Pupil {
         bool enableRateShading = false;
         bool enablePointLightShadow = true;
     };
+
+    struct VkImageView_t {
+        VkResult result;
+        VkImageView imageView;
+    };
+
+    struct VkFormat_t {
+        VkResult result;
+        VkFormat format;
+    };
 }

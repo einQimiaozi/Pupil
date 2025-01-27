@@ -6,6 +6,7 @@ namespace Pupil {
     void RuntimeGlobalContext::startSystems(const std::string& config_file_path) {
         // 初始化log系统
         log_system = std::make_shared<Log>();
+        LOG_INFO("logger initialized");
         // 初始化视窗系统
         window_system = std::make_shared<WindowSystem>();
         // todo: 从config中读取window create info
@@ -16,13 +17,7 @@ namespace Pupil {
         render_system = std::make_shared<RenderSystem>();
         RenderInterface r_interface = { window_system };
         render_system->initialize(r_interface);
-
-        // 初始化rhi
-        rhi = std::make_shared<VulkanRHI>();
-        VulkanInterface v_interface = { window_system };
-        VulkanConfig v_config;
-        rhi->initiative(v_interface, v_config);
-
+        LOG_INFO("render system initialized");
         // todo: 初始化其他系统
     }
     void RuntimeGlobalContext::shutdownSystems() {

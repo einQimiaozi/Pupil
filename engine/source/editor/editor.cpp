@@ -15,7 +15,7 @@ namespace Pupil {
         editor_ui->initialize(ui_init_info);
     }
     void PupilEditor::run() {
-        LOG_INFO("Hello Pupil!");
+        LOG_INFO("Everything is ready, but please don't forget Pupil");
         assert(engine_runtime);
         assert(editor_ui);
         while (true) {

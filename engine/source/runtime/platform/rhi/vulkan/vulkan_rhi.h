@@ -12,15 +12,14 @@
 
 #include "core/log/log.h"
 #include "platform/rhi/vulkan/vulkan_struct.h"
+#include "function/render/render_system.h"
 
+#include <vk_mem_alloc.h>
 #include "GLFW/glfw3.h"
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace Pupil {
     class WindowSystem;
-    struct VulkanInterface {
-        std::shared_ptr<WindowSystem> window_system;
-    };
 
     class VulkanRHI {
     public:
@@ -37,9 +36,12 @@ namespace Pupil {
         // debugmessager回调函数
         VkDebugUtilsMessengerEXT callback;
         VulkanConfig config;
-        static const uint8_t maxFrameFlight = 8;
+        // 最大并行帧，可以理解为n级缓冲
+        static const uint8_t maxFrameFlight = 3;
+        static const uint32_t maxVertexBlendingMeshCount = 256;
+        static const uint32_t maxMaterialCount = 256;
 
-        bool initiative(VulkanInterface interface, VulkanConfig config);
+        bool initiative(RenderInterface interface, VulkanConfig config);
         void destroy();
     private:
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -50,6 +52,20 @@ namespace Pupil {
         VkCommandPool commandPools[maxFrameFlight];
         VkCommandBuffer defaultCommandBuffer;
         VkCommandBuffer commandBuffers[maxFrameFlight];
+        VkDescriptorPool descriptorPool;
+        VkSemaphore imageAvailableSemaphores[maxFrameFlight];
+        VkSemaphore renderFinishedSemaphores[maxFrameFlight];
+        VkSemaphore imageAvailableTexturescopySemaphores[maxFrameFlight];
+        VkFence inFlightFences[maxFrameFlight];
+        VkSwapchainKHR swapChain;
+        std::vector<VkImage> swapChainImages;
+        VkExtent2D swapChainExtent;
+        std::vector<VkImageView> swapChainImageViews;
+        VkFormat swapchainImageFormat{ VK_FORMAT_UNDEFINED };
+        VkImage depthImage;
+        VkDeviceMemory depthImageMemory;
+        VkImageView depthImageView;
+        VmaAllocator assetsAllocator;
 
         // function pointer
         PFN_vkCmdBeginDebugUtilsLabelEXT _vkCmdBeginDebugUtilsLabelEXT;
@@ -84,8 +100,16 @@ namespace Pupil {
         VkResult createLogicalDevice();
         VkResult createCommandPool();
         VkResult createCommandBuffers();
+        VkResult createDescriptorPool();
+        VkResult createSyncObjects();
+        VkResult createSwapChain();
+        VkResult createImageViews();
+        VkResult createDepthResources();
+        VkResult createAssetAllocator();
 
         // destroy
+        void vkDestroySemaphores(VkSemaphore semaphores[]);
+        void vkDestroyFences(VkFence fences[]);
         void DestroyDebugUtilsMessengerEXT(VkInstance instance,
             const VkAllocationCallbacks* pAllocator,
             VkDebugUtilsMessengerEXT callback);

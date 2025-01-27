@@ -4,7 +4,7 @@
 
 namespace Pupil {
 	VkResult VulkanRHI::createInstance() {
-		std::string version = getVulkanVersion();
+		std::string version = getVulkanVersionStr();
 		LOG_INFO("vulkan version: " + version);
 
 		VkApplicationInfo appInfo = {};
@@ -20,20 +20,17 @@ namespace Pupil {
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 
-		// »ñÈ¡±ØÒªÍØÕ¹
+		// è·å–å¿…è¦æ‹“å±•
 		std::vector<const char*> extensions = getRequiredExtensions(config.enableValidation);
-		// ¼ì²âglfwµÄÍØÕ¹ÊÇ·ñ°üº¬ÔÚµ±Ç°Éè±¸Ö§³ÖµÄÍØÕ¹ÖĞ
 		if (config.enableValidation && !checkExtensionSupport(extensionsName)) {
 			LOG_ERROR("extenstions requested, but not available!");
 			return VK_ERROR_INITIALIZATION_FAILED;
 		}
-		// ¼ì²âÑéÖ¤²ãÊÇ·ñ°üº¬ÔÚµ±Ç°Éè±¸Ö§³ÖµÄ²ã
 		if (config.enableValidation && !checkValidationLayerSupport(validationLayers)) {
 			LOG_ERROR("layers requested, but not available!");
 			return VK_ERROR_INITIALIZATION_FAILED;
 		}
 
-		// ³õÊ¼»¯ÊµÀı´´½¨ĞÅÏ¢ÖĞµÄĞ£Ñé²ãºÍÍØÕ¹ĞÅÏ¢£¬ÓÃÓÚĞ£Ñé²ãÊ¹ÓÃ
 		if (config.enableValidation) {
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -46,13 +43,11 @@ namespace Pupil {
 		createInfo.ppEnabledExtensionNames = extensions.data();
 		extensionsName = extensions;
 
-		// ´´½¨vulkanÊµÀı
 		VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
 		if (result != VK_SUCCESS) {
 			return result;
 		}
 
-		// ×¢²ádebugmessager»Øµ÷
 		if (!config.enableValidation) {
 			return VK_SUCCESS;
 		}
@@ -67,14 +62,13 @@ namespace Pupil {
 			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		debugMessengerCreateInfo.pfnUserCallback = debugCallback;
 		debugMessengerCreateInfo.pUserData = nullptr;
-		// Ê¹ÓÃCreateDebugUtilsMessengerEXT´´½¨debug messenger
+		// ä½¿ç”¨CreateDebugUtilsMessengerEXTåˆ›å»ºdebug messenger
 		if ((result = CreateDebugUtilsMessengerEXT(instance, &debugMessengerCreateInfo, nullptr, &callback)) != VK_SUCCESS) {
 			return result;
 		}
 		return VK_SUCCESS;
 	}
 
-	// ´´½¨debug messenger
 	VkResult VulkanRHI::CreateDebugUtilsMessengerEXT(VkInstance instance,
 		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
@@ -104,7 +98,6 @@ namespace Pupil {
 		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 		int score = -0x3f3f3f3f;
 		for (auto device : devices) {
-			// ¼ÆËãµ±Ç°Ó²¼şÉè±¸µÃ·Ö
 			VkPhysicalDeviceProperties deviceProperties;
 			VkPhysicalDeviceFeatures deviceFeatures;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -122,7 +115,6 @@ namespace Pupil {
 				break;
 			}
 		}
-		// Èç¹ûÃ»ÕÒµ½¿ÉÓÃÎïÀíÉè±¸£¬Å×³öÒì³£
 		if (physicalDevice == VK_NULL_HANDLE) {
 			LOG_ERROR("failed to find a suitable GPU!");
 			return VK_ERROR_INITIALIZATION_FAILED;
@@ -145,16 +137,16 @@ namespace Pupil {
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
 
-		// ÅäÖÃÓ²¼şÌØĞÔ, ºóĞøĞÂÔöÓ²¼şÌØĞÔÔÚÕâÀïĞ´
+		// é…ç½®ç¡¬ä»¶ç‰¹æ€§, åç»­æ–°å¢ç¡¬ä»¶ç‰¹æ€§åœ¨è¿™é‡Œå†™
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		if (config.enableRateShading) {
 			deviceFeatures.sampleRateShading = VK_TRUE;
 		}
-		deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;		// ÔÊĞíÆ¬¶Î×ÅÉ«Æ÷¼ÆËãbufferºó½øĞĞ´æ´¢£¬×öºó´¦ÀíµÈ¹¤×÷Ê±ĞèÒª¿ªÆôÕâ¸öÌØĞÔ£¬ÈÃÆ¬¶Î×ÅÉ«Æ÷ÄÜ¹»´æ´¢bufferÈ»ºó´«µİ¸øºó´¦Àí
-		deviceFeatures.independentBlend = VK_TRUE;				// ¿ªÆô¶ÀÁ¢»ìºÏ£¬ÔÊĞíäÖÈ¾Ä¿±ê×Ô¼º½øĞĞÑÕÉ«»ìºÏ
+		deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;		// å…è®¸ç‰‡æ®µç€è‰²å™¨è®¡ç®—bufferåè¿›è¡Œå­˜å‚¨ï¼Œåšåå¤„ç†ç­‰å·¥ä½œæ—¶éœ€è¦å¼€å¯è¿™ä¸ªç‰¹æ€§ï¼Œè®©ç‰‡æ®µç€è‰²å™¨èƒ½å¤Ÿå­˜å‚¨bufferç„¶åä¼ é€’ç»™åå¤„ç†
+		deviceFeatures.independentBlend = VK_TRUE;				// å¼€å¯ç‹¬ç«‹æ··åˆï¼Œå…è®¸æ¸²æŸ“ç›®æ ‡è‡ªå·±è¿›è¡Œé¢œè‰²æ··åˆ
 		if (config.enablePointLightShadow) {
-			deviceFeatures.geometryShader = VK_TRUE;			// Èç¹ûÒªÖ§³Öµã¹âÔ´ÒõÓ°¼ÆËã£¬Éú³ÉÉî¶ÈÁ¢·½ÌùÍ¼ĞèÒª¿ªÆô¼¸ºÎ×ÅÉ«Æ÷½×¶Î
+			deviceFeatures.geometryShader = VK_TRUE;			// å¦‚æœè¦æ”¯æŒç‚¹å…‰æºé˜´å½±è®¡ç®—ï¼Œç”Ÿæˆæ·±åº¦ç«‹æ–¹è´´å›¾éœ€è¦å¼€å¯å‡ ä½•ç€è‰²å™¨é˜¶æ®µ
 		}
 
 		VkDeviceCreateInfo createInfo = {};
@@ -180,7 +172,7 @@ namespace Pupil {
 		vkGetDeviceQueue(logicDevice, indices.graphicsFamily, 0, &graphicsQueue);
 		vkGetDeviceQueue(logicDevice, indices.presentFamily, 0, &presentQueue);
 
-		// ÕâÀï´´½¨¼¸¸öºóÃæ»á¾­³£ÓÃµÄº¯ÊıµÄÖ¸Õë£¬·ÀÖ¹Ä³Ğ©Éè±¸²»Ö§³Öµ÷ÓÃµ¼ÖÂcrash
+		// è¿™é‡Œåˆ›å»ºå‡ ä¸ªåé¢ä¼šç»å¸¸ç”¨çš„å‡½æ•°çš„æŒ‡é’ˆï¼Œé˜²æ­¢æŸäº›è®¾å¤‡ä¸æ”¯æŒè°ƒç”¨å¯¼è‡´crash
 		_vkResetCommandPool = (PFN_vkResetCommandPool)vkGetDeviceProcAddr(logicDevice, "vkResetCommandPool");
 		_vkBeginCommandBuffer = (PFN_vkBeginCommandBuffer)vkGetDeviceProcAddr(logicDevice, "vkBeginCommandBuffer");
 		_vkEndCommandBuffer = (PFN_vkEndCommandBuffer)vkGetDeviceProcAddr(logicDevice, "vkEndCommandBuffer");
@@ -202,9 +194,9 @@ namespace Pupil {
 	}
 
 	/*
-	* ÕâÀïÎÒÃÇÉè¼Æ¶à¸öcommand Pool
-	* 1. Ò»¸ö¿ÉÒÔ±»resetµÄpoolÓÃÓÚ×¨ÃÅ¸øÄ¬ÈÏÍ¼ĞÎcommand bufferÓÃ
-	* 2. n¸öcommand poolÓÃÓÚ¸øÆäËûÍ¼ĞÎ²Ù×÷ÓÃ£¬Ã¿¸öÏß³ÌÒ»¸ö£¬Ò²¾ÍÊÇºÍ×î´ó²¢ĞĞÖ¡ÊıÏàµÈ
+	* è¿™é‡Œæˆ‘ä»¬è®¾è®¡å¤šä¸ªcommand Pool
+	* 1. ä¸€ä¸ªå¯ä»¥è¢«resetçš„poolç”¨äºä¸“é—¨ç»™é»˜è®¤å›¾å½¢command bufferç”¨
+	* 2. nä¸ªcommand poolç”¨äºç»™å…¶ä»–å›¾å½¢æ“ä½œç”¨ï¼Œæ¯ä¸ªçº¿ç¨‹ä¸€ä¸ªï¼Œä¹Ÿå°±æ˜¯å’Œæœ€å¤§å¹¶è¡Œå¸§æ•°ç›¸ç­‰
 	*/
 	VkResult VulkanRHI::createCommandPool() {
 		VkResult result = VK_SUCCESS;
@@ -234,7 +226,7 @@ namespace Pupil {
 	}
 
 	/*
-	* ¿¼ÂÇ¶àÏß³ÌÎÊÌâ£¬ÎÒÃÇ¸øÃ¿¸öpool·ÖÅäÒ»¸öbuffer¼´¿É
+	* è€ƒè™‘å¤šçº¿ç¨‹é—®é¢˜ï¼Œæˆ‘ä»¬ç»™æ¯ä¸ªpoolåˆ†é…ä¸€ä¸ªbufferå³å¯
 	*/
 	VkResult VulkanRHI::createCommandBuffers() {
 		VkResult result = VK_SUCCESS;
@@ -251,7 +243,183 @@ namespace Pupil {
 		}
 		return VK_SUCCESS;
 	}
+	
+	VkResult VulkanRHI::createDescriptorPool() {
+		// åˆ›å»º7ä¸ªæ± å­ï¼Œæ¯ä¸ªæ± å­çš„åŠŸèƒ½ä¸ä¸€æ ·
+		// todo: è¿™é‡Œæœ‰äº›å‚æ•°é…ç½®æ˜¯ç¡¬ç¼–ç ï¼Œæš‚æ—¶ä¸çŸ¥é“ä¸ºä»€ä¹ˆç”¨è¿™ä¸ªæ•°ï¼Œåç»­éœ€è¦äº†è§£ä¸€ä¸‹
+		VkResult result;
+		VkDescriptorPoolSize poolSizes[7];
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+		poolSizes[0].descriptorCount = 3 + 2 + 2 + 2 + 1 + 1 + 3 + 3;
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		poolSizes[1].descriptorCount = 1 + 1 + 1 * maxVertexBlendingMeshCount;
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[2].descriptorCount = maxMaterialCount;
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[3].descriptorCount = 3 + 5 * maxMaterialCount + 1 + 1;
+		poolSizes[4].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		poolSizes[4].descriptorCount = 4 + 1 + 1 + 2;
+		poolSizes[5].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		poolSizes[5].descriptorCount = 3;
+		poolSizes[6].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		poolSizes[6].descriptorCount = 1;
 
+		VkDescriptorPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		// pool size == 7
+		poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]);
+		poolInfo.pPoolSizes = poolSizes;
+		poolInfo.maxSets = 1 + 1 + 1 + maxMaterialCount + maxVertexBlendingMeshCount + 1 + 1; // +skybox + axis descriptor set
+		poolInfo.flags = 0U;
+
+		if ((result = vkCreateDescriptorPool(logicDevice, &poolInfo, nullptr, &descriptorPool)) != VK_SUCCESS)
+		{
+			return result;
+		}
+		return VK_SUCCESS;
+	}
+
+	VkResult VulkanRHI::createSyncObjects() {
+		// ä¿¡å·é‡åˆ›å»ºä¸‰ä¸ª
+		/*
+		* 1. é˜»å¡imageå¯è·å–å‰
+		* 2. é˜»å¡renderpassæ‰§è¡Œå®Œæ¯•å‰
+		* 3. é˜»å¡çº¹ç†å¤åˆ¶å®Œæˆå‰
+		*/
+		VkSemaphoreCreateInfo semaphoreInfo = {};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (size_t i = 0; i < maxFrameFlight; i++) {
+			if (vkCreateSemaphore(logicDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS
+				|| vkCreateSemaphore(logicDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS
+				|| vkCreateSemaphore(logicDevice, &semaphoreInfo, nullptr, &imageAvailableTexturescopySemaphores[i]) != VK_SUCCESS
+				|| vkCreateFence(logicDevice, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+				return VK_SUCCESS;
+			}
+		}
+		return VK_SUCCESS;
+	}
+
+	VkResult VulkanRHI::createSwapChain() {
+		VkResult result;
+		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
+		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+		VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+
+		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+			imageCount = swapChainSupport.capabilities.maxImageCount;
+		}
+
+		VkSwapchainCreateInfoKHR createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.surface = surface;
+		createInfo.minImageCount = imageCount;
+		createInfo.imageFormat = surfaceFormat.format;
+		createInfo.imageColorSpace = surfaceFormat.colorSpace;
+		createInfo.imageExtent = extent;
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		QueueFamilyIndices indices = findQueueFamilies(physicalDevice, surface);
+		uint32_t queueFamilyIndices[] = { (uint32_t)indices.graphicsFamily, (uint32_t)indices.presentFamily };
+		if (indices.graphicsFamily != indices.presentFamily) {
+			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			createInfo.queueFamilyIndexCount = 2;
+			createInfo.pQueueFamilyIndices = queueFamilyIndices;
+		}
+		else {
+			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		}
+		createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = presentMode;
+		createInfo.clipped = VK_TRUE;
+		createInfo.oldSwapchain = VK_NULL_HANDLE;
+		if ((result = vkCreateSwapchainKHR(logicDevice, &createInfo, nullptr, &swapChain)) != VK_SUCCESS) {
+			return result;
+		}
+		vkGetSwapchainImagesKHR(logicDevice, swapChain, &imageCount, nullptr);
+		swapChainImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(logicDevice, swapChain, &imageCount, swapChainImages.data());
+		swapchainImageFormat = surfaceFormat.format;
+		swapChainExtent = extent;
+		return VK_SUCCESS;
+	}
+
+	VkResult VulkanRHI::createImageViews() {
+		swapChainImageViews.resize(swapChainImages.size());
+		for (uint32_t i = 0; i < swapChainImages.size(); i++) {
+			VkImageView_t imageView_t = createImageView(
+				logicDevice,
+				swapChainImages[i],
+				swapchainImageFormat,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_VIEW_TYPE_2D,
+				1,
+				1
+			);
+			if (imageView_t.result != VK_SUCCESS) {
+				return imageView_t.result;
+			}else {
+				swapChainImageViews[i] = imageView_t.imageView;
+			}
+		}
+		return VK_SUCCESS;
+	}
+
+	VkResult VulkanRHI::createDepthResources() {
+		VkResult result;
+		VkFormat_t depthFormat_t = findDepthFormat(physicalDevice);
+		if ((result = depthFormat_t.result) != VK_SUCCESS) {
+			return result;
+		}
+		createImage(
+			physicalDevice,
+			logicDevice,
+			swapChainExtent.width,
+			swapChainExtent.height,
+			depthFormat_t.format,
+			VK_IMAGE_TILING_OPTIMAL, 
+			VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			depthImage,
+			depthImageMemory,
+			0,
+			1,
+			1,
+			VK_SAMPLE_COUNT_1_BIT
+		);
+		VkImageView_t depthImageView_t = createImageView(logicDevice, depthImage, depthFormat_t.format, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+		if (depthImageView_t.result != VK_SUCCESS) {
+			return depthImageView_t.result;
+		}
+		depthImageView = depthImageView_t.imageView;
+		return VK_SUCCESS;
+	}
+
+	// ä½¿ç”¨vmaç®¡ç†å†…å­˜
+	VkResult VulkanRHI::createAssetAllocator() {
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+		VmaAllocatorCreateInfo allocatorCreateInfo = {};
+		allocatorCreateInfo.vulkanApiVersion = getVulkanVersion();
+		allocatorCreateInfo.physicalDevice = physicalDevice;
+		allocatorCreateInfo.device = logicDevice;
+		allocatorCreateInfo.instance = instance;
+		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+		return vmaCreateAllocator(&allocatorCreateInfo, &assetsAllocator);
+	}
+
+	// Destory
 	void VulkanRHI::DestroyDebugUtilsMessengerEXT(VkInstance instance,
 		const VkAllocationCallbacks* pAllocator,
 		VkDebugUtilsMessengerEXT callback) {
@@ -261,18 +429,26 @@ namespace Pupil {
 		}
 	}
 
-	void VulkanRHI::DestroySwapChain() {
-		// todo
+	void VulkanRHI::vkDestroySemaphores(VkSemaphore semaphores[]) {
+		for (size_t i = 0; i < maxFrameFlight; i++) {
+			vkDestroySemaphore(logicDevice, semaphores[i], nullptr);
+		}
 	}
 
-	bool VulkanRHI::initiative(VulkanInterface interface, VulkanConfig config) {
+	void VulkanRHI::vkDestroyFences(VkFence fences[]) {
+		for (size_t i = 0; i < maxFrameFlight; i++) {
+			vkDestroyFence(logicDevice, fences[i], nullptr);
+		}
+	}
+
+	bool VulkanRHI::initiative(RenderInterface interface, VulkanConfig config) {
 		this->window = interface.window_system->window;
 		this->config = config;
 		VkResult err;
 
 		err = createInstance();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Could not create Vulkan instance, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Could not create Vulkan instance! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
 		}else {
 			LOG_INFO("Create Vulkan Instance Success!")
@@ -280,7 +456,7 @@ namespace Pupil {
 
 		err = createWindowSurface();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Failed to Create Window Surface!, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Failed to Create Window Surface! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
 		}else {
 			LOG_INFO("Create Window Surface Success!");
@@ -288,7 +464,7 @@ namespace Pupil {
 
 		err = pickPhysicalDevice();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Failed to find a compatible Device!, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Failed to find a compatible Device! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
 		}else {
 			VkPhysicalDeviceProperties properties;
@@ -298,78 +474,150 @@ namespace Pupil {
 
 		err = createLogicalDevice();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Failed to create a logicDevice!, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Failed to create a logicDevice! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
-		} else {
+		}else {
 			LOG_INFO("Create logicDevice Success!");
 		}
 		
 		err = createCommandPool();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Failed to create a Command Pool!, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Failed to create a Command Pool! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
-		}
-		else {
+		}else {
 			LOG_INFO("Create Command Pool Success!");
 		}
 		
 		err = createCommandBuffers();
 		if (err != VK_SUCCESS) {
-			LOG_ERROR("Failed to create a Command Buffers!, err msg [ " + VkErrorMsg[err] + " ]");
+			LOG_ERROR("Failed to create a Command Buffers! err code [ " + VkErrorMsg[err] + " ]");
 			return false;
-		}
-		else {
+		}else {
 			LOG_INFO("Create Command Buffers Success!");
 		}
-		// createImageViews();
+
+		err = createDescriptorPool();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create Descriptor Pool Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create Descriptor Pool Success!");
+		}
+
+		err = createSyncObjects();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create Sync Objects Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create Sync Objects Success!");
+		}
+
+		err = createSwapChain();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create SwapChain Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create SwapChain Success!");
+		}
+
+		err = createImageViews();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create SwapChain ImageViews Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create SwapChain ImageViews Success!");
+		}
+
+		err = createDepthResources();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create Depth Resources Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create Depth Resources Success!");
+		}
+
+		err = createAssetAllocator();
+		if (err != VK_SUCCESS) {
+			LOG_ERROR("Create Vma Failed! err code [ " + VkErrorMsg[err] + " ]");
+			return false;
+		}else {
+			LOG_INFO("Create Vma Success!");
+		}
+
 		// createRenderPass();
 		// createDescriptorSetLayout();
 		// createGraphicsPipeline();
-		// createSwapChain();
-		// createCommandPool();
-		// ÅäÖÃ¶àÖØ²ÉÑùµÄÑÕÉ«ºÍÉî¶È×ÊÔ´
+		// é…ç½®å¤šé‡é‡‡æ ·çš„é¢œè‰²å’Œæ·±åº¦èµ„æº
 		// createColorResources();
-		// ÅäÖÃÉî¶ÈÍ¼ÏñĞèÒªµÄ×ÊÔ´
-		// createDepthResources();
-		// ´´½¨Ö¡»º³å, Èç¹ûÊ¹ÓÃÉî¶ÈÍ¼£¬ÔòÖ¡»º³åµÄ´´½¨ÒÀÀµÉî¶ÈÍ¼£¬ĞèÒªÔÚ´´½¨Éî¶ÈÍ¼×ÊÔ´ºóÔÙ´´½¨Ö¡»º³å
+		// åˆ›å»ºå¸§ç¼“å†², å¦‚æœä½¿ç”¨æ·±åº¦å›¾ï¼Œåˆ™å¸§ç¼“å†²çš„åˆ›å»ºä¾èµ–æ·±åº¦å›¾ï¼Œéœ€è¦åœ¨åˆ›å»ºæ·±åº¦å›¾èµ„æºåå†åˆ›å»ºå¸§ç¼“å†²
 		// createFramebuffers();
-		// ¼ÓÔØÍ¼ÏñÊı¾İµ½vulkanÊµÀıÖĞ£¬ÒòÎªÒªÊ¹ÓÃÖ¸Áî»º³å£¬ËùÒÔÕâÒ»²½ĞèÒªÔÚcreateCommandPoolÖ®ºó
+		// åŠ è½½å›¾åƒæ•°æ®åˆ°vulkanå®ä¾‹ä¸­ï¼Œå› ä¸ºè¦ä½¿ç”¨æŒ‡ä»¤ç¼“å†²ï¼Œæ‰€ä»¥è¿™ä¸€æ­¥éœ€è¦åœ¨createCommandPoolä¹‹å
 		// createTextureImage();
-		// ´´½¨ÉÏÒ»²½ÎÆÀíÍ¼ÏñµÄÊÓÍ¼
+		// åˆ›å»ºä¸Šä¸€æ­¥çº¹ç†å›¾åƒçš„è§†å›¾
 		// createTextureImageView();
-		// ´´½¨²ÉÑùÆ÷(Èç¹û²»Ê¹ÓÃÎÆÀíµÄ»°ÕâÒ»²½¿ÉÒÔ²»Òª)
+		// åˆ›å»ºé‡‡æ ·å™¨(å¦‚æœä¸ä½¿ç”¨çº¹ç†çš„è¯è¿™ä¸€æ­¥å¯ä»¥ä¸è¦)
 		// createTextureSampler();
-		// Èç¹ûÎÒÃÇĞèÒªäÖÈ¾Ä£ĞÍ£¬ÔÚÕâÀï´´½¨Ä£ĞÍ¶¥µãºÍË÷Òı
+		// å¦‚æœæˆ‘ä»¬éœ€è¦æ¸²æŸ“æ¨¡å‹ï¼Œåœ¨è¿™é‡Œåˆ›å»ºæ¨¡å‹é¡¶ç‚¹å’Œç´¢å¼•
 		// loadModel();
-		// ´´½¨¶¥µã»º³å
+		// åˆ›å»ºé¡¶ç‚¹ç¼“å†²
 		// createVertexBuffer();
-		// ´´½¨Ë÷Òı»º³å
+		// åˆ›å»ºç´¢å¼•ç¼“å†²
 		// createIndexBuffer();
-		// ´´½¨ÃèÊö·û»º³å
+		// åˆ›å»ºæè¿°ç¬¦ç¼“å†²
 		// createUniformBuffer();
-		// ´´½¨ÃèÊö·û×ÊÔ´³Ø
-		// createDescriptorPool();
-		// ´´½¨ÃèÊö·û¼¯¶ÔÏó
+		// åˆ›å»ºæè¿°ç¬¦é›†å¯¹è±¡
 		// createDescriptorSets();
-		// ³õÊ¼»¯Í¬²½¶ÔÏó
-		// createSyncObjects();
 		return true;
 	}
 
 	void VulkanRHI::destroy() {
+		vkDestroySemaphores(renderFinishedSemaphores);
+		vkDestroySemaphores(imageAvailableSemaphores);
+		vkDestroySemaphores(imageAvailableTexturescopySemaphores);
+		vkDestroyFences(inFlightFences);
+		LOG_INFO("Destory Sync Objects Success!");
+
 		for (uint8_t i = 0; i < maxFrameFlight; i++) {
 			vkDestroyCommandPool(logicDevice, commandPools[i], nullptr);
 		}
 		vkDestroyCommandPool(logicDevice, defaultCommandPool, nullptr);
+		LOG_INFO("Destory Command Pool Success!");
+
+		vkDestroyImageView(logicDevice, depthImageView, nullptr);
+		vkDestroyImage(logicDevice, depthImage, nullptr);
+		vkFreeMemory(logicDevice, depthImageMemory, nullptr);
+		LOG_INFO("Destory Depth Resources Success!");
+
+		for (VkImageView imageView : swapChainImageViews) {
+			vkDestroyImageView(logicDevice, imageView, nullptr);
+		}
+		LOG_INFO("Destory ImageViews Success!");
+
+		vkDestroySwapchainKHR(logicDevice, swapChain, nullptr);
+		LOG_INFO("Destory SwapChain Success!");
+
+		vkDestroyDescriptorPool(logicDevice, descriptorPool, nullptr);
+		LOG_INFO("Destory Descriptor Pool Success!");
+
 		vkDestroyDevice(logicDevice, nullptr);
-		// Èç¹û¿ªÆôÁËdebugÄ£Ê½£¬Ïú»Ùdebug messenger
+		LOG_INFO("Destory Logic Device Success!");
+
+		// å¦‚æœå¼€å¯äº†debugæ¨¡å¼ï¼Œé”€æ¯debug messenger
 		if (config.enableValidation) {
 			DestroyDebugUtilsMessengerEXT(instance, nullptr, callback);
+			LOG_INFO("Destory Debug Messenger Success!");
 		}
 		vkDestroySurfaceKHR(instance, surface, nullptr);
+		LOG_INFO("Destory Surface Handler Success!");
+
 		vkDestroyInstance(instance, nullptr);
+		LOG_INFO("Destory Vulkan Instance Success!");
+
 		glfwDestroyWindow(window);
 		glfwTerminate();
+		LOG_INFO("Destory GLFW Window Success!");
+
+		LOG_INFO("Destory Vulkan Handler Success!");
 	}
 
 	VulkanRHI::~VulkanRHI() {
