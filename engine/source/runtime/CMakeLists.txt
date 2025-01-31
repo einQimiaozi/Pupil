@@ -3,6 +3,11 @@ set(TARGET_NAME PupilRuntime)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(JSON_INCLUDE ${THIRD_PARTY_DIR}/json11)
+
+add_library(json11 ${JSON_INCLUDE}/json11.cpp)
+set_target_properties(json11 PROPERTIES FOLDER "ThirdParty/json11")
+
 file(GLOB_RECURSE HEADER_FILES "*.h")
 file(GLOB_RECURSE SOURCE_FILES "*.cpp")
 
@@ -24,6 +29,12 @@ target_link_libraries(${TARGET_NAME} PUBLIC glm)
 target_link_libraries(${TARGET_NAME} PUBLIC ${vulkan_lib})
 target_link_libraries(${TARGET_NAME} PUBLIC Jolt)
 target_link_libraries(${TARGET_NAME} PUBLIC spdlog)
+target_link_libraries(${TARGET_NAME} PRIVATE $<BUILD_INTERFACE:json11>)
+
+target_include_directories(
+  ${TARGET_NAME} 
+  PUBLIC $<BUILD_INTERFACE:${JSON_INCLUDE}>
+)
 
 target_include_directories(
   ${TARGET_NAME}

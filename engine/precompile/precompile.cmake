@@ -31,8 +31,6 @@ endif()
 
 set (GEN_INPUT ${CMAKE_BINARY_DIR}/gen_header.h)
 
-message("exec path: ${PRECOMPILE_GEN}")
-
 ### BUILDING ====================================================================================
 set(PRECOMPILE_TARGET "PupilPreCompile")
 add_custom_target(${PRECOMPILE_TARGET} ALL

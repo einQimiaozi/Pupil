@@ -2,13 +2,15 @@
 
 #include "core/reflection/reflection.h"
 #include "_generated/serializer/all_serializer.h"
-#include "_generated\reflection\primitive.reflection.gen.h"
+{{#include_headfiles}}
+#include "{{headfile_name}}"
+{{/include_headfiles}}
 
 namespace Pupil {
 namespace Reflection {
     void TypeMetaRegister::metaRegister() {
-        TypeWrappersRegister::Primitive();
+        {{#sourefile_names}}TypeWrappersRegister::{{sourefile_name_upper_camel_case}}();
+        {{/sourefile_names}}
     }
 }
 }
-

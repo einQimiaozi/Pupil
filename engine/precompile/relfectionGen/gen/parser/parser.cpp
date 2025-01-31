@@ -26,8 +26,13 @@
         if (handle->shouldCompile()) \
         { \
             auto file = handle->getSourceFile(); \
+            std::cout << file << " should compile\n"; \
             m_schema_modules[file].container.emplace_back(handle); \
             m_type_table[handle->m_display_name] = file; \
+        } \
+        else \
+        { \
+            std::cout << handle->m_display_name << " shouldn't compile\n"; \
         } \
     }
 
@@ -165,6 +170,8 @@ int MetaParser::parse(void) {
     buildClassAST(cursor, temp_namespace);
 
     temp_namespace.clear();
+
+    std::cout << "Parsing the whole project finished\n";
 
     return 0;
 }

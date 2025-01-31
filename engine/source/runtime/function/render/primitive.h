@@ -4,15 +4,21 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include <glm.hpp>
-#include <gtx/hash.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
 
 namespace Pupil {
-	struct Vertex {
+	REFLECTION_TYPE(Vertex)
+	STRUCT(Vertex, WhiteListFields) {
+		REFLECTION_BODY(Vertex)
+
 		glm::vec3 pos;
 		glm::vec4 color;
 		glm::vec2 texCoord;
 		glm::vec3 normal;
+
+		META(Enable)
+		float alpha;
 
 		bool operator == (const Vertex& other) const {
 			return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
