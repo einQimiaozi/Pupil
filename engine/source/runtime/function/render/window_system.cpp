@@ -12,7 +12,7 @@ namespace Pupil {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         if (!(window = glfwCreateWindow(width, height, create_info.title, nullptr, nullptr))) {
             glfwTerminate();
-            return; //  ß∞‹∫Û÷’÷π
+            return;
         }
         // glfwSetWindowUserPointer(window, this);
     }

@@ -1,8 +1,26 @@
 # 编译
 
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+```
+
+生成好的项目可执行文件路径
+
+```
+./Pupil/build/engine/Release/Pupil.exe
+```
+
+
+**下述编译方案为旧方案，已不再使用，但自行配置cmake_converter和visual studio后也可以使用**
+
+# 编译
+
 如果不修改代码的话
 
-1. 在vistual studio中重新生成解决方法
+1. 在visual studio中重新生成解决方法
 
 2. 生成makefile
 
@@ -25,7 +43,7 @@ cmake --build "build" --config Release
 
 1. 安装python，版本 >= 3.6
 
-2. 在vistual studio中重新生成解决方法
+2. 在visual studio中重新生成解决方法
 
 3. 重新生成CMakeLists.exe
 

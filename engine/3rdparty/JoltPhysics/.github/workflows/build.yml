@@ -14,8 +14,8 @@ on:
 
 env:
   EMSCRIPTEN_VERSION: 3.1.64
-  UBUNTU_CLANG_VERSION: clang++-15
-  UBUNTU_GCC_VERSION: g++-12
+  UBUNTU_CLANG_VERSION: clang++-18
+  UBUNTU_GCC_VERSION: g++-14
 
 jobs:
   linux-clang:
@@ -30,6 +30,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+    - name: Install Vulkan
+      run: ${{github.workspace}}/Build/ubuntu24_install_vulkan_sdk.sh
     - name: Configure CMake
       working-directory: ${{github.workspace}}/Build
       run: ./cmake_linux_clang_gcc.sh ${{matrix.build_type}} ${{env.UBUNTU_CLANG_VERSION}} -DDOUBLE_PRECISION=${{matrix.double_precision}}
@@ -40,7 +42,7 @@ jobs:
       run: ctest --output-on-failure --verbose
 
   linux_clang_tsan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux Clang Sanitizers
     strategy:
         fail-fast: false
@@ -66,7 +68,7 @@ jobs:
       run: ./PerformanceTest -q=LinearCast -t=max -s=Ragdoll
 
   linux-clang-so:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux Clang Shared Library
     strategy:
         fail-fast: false
@@ -86,7 +88,7 @@ jobs:
       run: ctest --output-on-failure --verbose
 
   linux-clang-32-bit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux Clang 32-bit
     strategy:
         fail-fast: false
@@ -110,7 +112,7 @@ jobs:
       run: ctest --output-on-failure --verbose
 
   linux-clang-use-std-vector:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux Clang using std::vector
     strategy:
         fail-fast: false
@@ -131,7 +133,7 @@ jobs:
       run: ctest --output-on-failure --verbose
 
   linux-gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux GCC
     strategy:
         fail-fast: false
@@ -141,6 +143,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+    - name: Install Vulkan
+      run: ${{github.workspace}}/Build/ubuntu24_install_vulkan_sdk.sh
     - name: Configure CMake
       working-directory: ${{github.workspace}}/Build
       run: ./cmake_linux_clang_gcc.sh ${{matrix.build_type}} ${{env.UBUNTU_GCC_VERSION}}
@@ -151,7 +155,7 @@ jobs:
       run: ctest --output-on-failure --verbose
 
   linux-gcc-so:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Linux GCC Shared Library
     strategy:
         fail-fast: false
@@ -193,7 +197,7 @@ jobs:
         update: true
     - name: Configure CMake
       working-directory: ${{github.workspace}}/Build
-      run: ./cmake_linux_mingw.sh ${{matrix.build_type}} g++ -DBUILD_SHARED_LIBS=${{matrix.shared_lib}}
+      run: ./cmake_linux_mingw.sh ${{matrix.build_type}} -DBUILD_SHARED_LIBS=${{matrix.shared_lib}}
     - name: Build
       run: cmake --build Build/MinGW_${{matrix.build_type}} -j $(nproc)
     - name: Test
@@ -317,7 +321,9 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/Build/VS2022_CL_ARM_32_BIT -G "Visual Studio 17 2022" -A ARM Build
+      # Windows 11 SDK 10.0.22621.0 is the last SDK to support 32-bit ARM, in the future if the github image no longer includes it, it can be installed with:
+      # Start-Process -wait -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify", "--installPath", """C:\Program Files\Microsoft Visual Studio\2022\Enterprise""", "--quiet", "--norestart", "--nocache", "--add", "Microsoft.VisualStudio.Component.Windows11SDK.22621" -Verb RunAs
+      run: cmake -B ${{github.workspace}}/Build/VS2022_CL_ARM_32_BIT -G "Visual Studio 17 2022" -A ARM -DCMAKE_SYSTEM_VERSION="10.0.22621.0" -DCMAKE_CXX_COMPILER_WORKS=1 Build 
     - name: Build
       run: msbuild Build\VS2022_CL_ARM_32_BIT\JoltPhysics.sln /property:Configuration=${{matrix.build_type}} -m
 
@@ -346,6 +352,8 @@ jobs:
   macos:
     runs-on: macos-latest
     name: macOS
+    env:
+        VULKAN_SDK_INSTALL: ${{github.workspace}}/vulkan_sdk
     strategy:
         fail-fast: false
         matrix:
@@ -354,8 +362,12 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+    - name: Install Vulkan
+      run: ${{github.workspace}}/Build/macos_install_vulkan_sdk.sh ${VULKAN_SDK_INSTALL}
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/Build/MacOS_${{matrix.build_type}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_COMPILER=clang++ Build
+      run: |
+        source ${VULKAN_SDK_INSTALL}/setup-env.sh
+        cmake -B ${{github.workspace}}/Build/MacOS_${{matrix.build_type}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_COMPILER=clang++ Build
     - name: Build
       run: cmake --build ${{github.workspace}}/Build/MacOS_${{matrix.build_type}} -j $(nproc)
     - name: Test

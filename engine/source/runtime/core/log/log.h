@@ -22,7 +22,6 @@ namespace Pupil {
         Log();
         ~Log();
 
-        // 用可变参数模板加spdlog实现一个log系统
         template<typename... TARGS>
         void print(LogLevel level, TARGS&&... args) {
             switch (level) {
@@ -40,7 +39,6 @@ namespace Pupil {
                 break;
             case LogLevel::critical:
                 logger->critical(std::forward<TARGS>(args)...);
-                // critical的时候终止进程，用runtime error即可
                 criticalCallback(std::forward<TARGS>(args)...);
                 break;
             }

@@ -1,7 +1,5 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-
 #include <stdexcept>
 #include <vector>
 #include <string.h>
@@ -28,15 +26,15 @@ namespace Pupil {
         GLFWwindow* window{ nullptr };
         VkSurfaceKHR surface{ nullptr };
         VkInstance instance{ nullptr };
-        // 校验层, 可以不开启
+
         std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
         std::vector<const char*> extensionsName;
-        // 硬件拓展
+
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-        // debugmessager回调函数
+
         VkDebugUtilsMessengerEXT callback;
         VulkanConfig config;
-        // 最大并行帧，可以理解为n级缓冲
+
         static const uint8_t maxFrameFlight = 3;
         static const uint32_t maxVertexBlendingMeshCount = 256;
         static const uint32_t maxMaterialCount = 256;

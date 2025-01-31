@@ -85,7 +85,7 @@ TEST_SUITE("ShapeTests")
 
 		// Extract support points
 		ConvexShape::SupportBuffer buffer;
-		const ConvexShape::Support *support = capsule.GetSupportFunction(ConvexShape::ESupportMode::IncludeConvexRadius, buffer, Vec3::sReplicate(1.0f));
+		const ConvexShape::Support *support = capsule.GetSupportFunction(ConvexShape::ESupportMode::IncludeConvexRadius, buffer, Vec3::sOne());
 		Array<Vec3> capsule_points;
 		capsule_points.reserve(Vec3::sUnitSphere.size());
 		for (const Vec3 &v : Vec3::sUnitSphere)
@@ -715,7 +715,7 @@ TEST_SUITE("ShapeTests")
 		// Create a heightfield
 		float *samples = new float [cHeightFieldSamples * cHeightFieldSamples];
 		memset(samples, 0, cHeightFieldSamples * cHeightFieldSamples * sizeof(float));
-		RefConst<Shape> previous_shape = HeightFieldShapeSettings(samples, Vec3::sZero(), Vec3::sReplicate(1.0f), cHeightFieldSamples).Create().Get();
+		RefConst<Shape> previous_shape = HeightFieldShapeSettings(samples, Vec3::sZero(), Vec3::sOne(), cHeightFieldSamples).Create().Get();
 		delete [] samples;
 
 		// Calculate the amount of bits needed to address all triangles in the heightfield
@@ -752,22 +752,35 @@ TEST_SUITE("ShapeTests")
 	TEST_CASE("TestEmptyMutableCompound")
 	{
 		// Create empty shape
-		RefConst<Shape> mutable_compound = new MutableCompoundShape();
+		Ref<MutableCompoundShape> mutable_compound = new MutableCompoundShape();
 
 		// A non-identity rotation
 		Quat rotation = Quat::sRotation(Vec3::sReplicate(1.0f / sqrt(3.0f)), 0.1f * JPH_PI);
 
-		// Check that local bounding box is invalid
+		// Check that local bounding box is a single point
 		AABox bounds1 = mutable_compound->GetLocalBounds();
-		CHECK(!bounds1.IsValid());
+		CHECK(bounds1 == AABox(Vec3::sZero(), Vec3::sZero()));
 
-		// Check that get world space bounds returns an invalid bounding box
-		AABox bounds2 = mutable_compound->GetWorldSpaceBounds(Mat44::sRotationTranslation(rotation, Vec3(100, 200, 300)), Vec3(1, 2, 3));
-		CHECK(!bounds2.IsValid());
+		// Check that get world space bounds returns a single point
+		Vec3 vec3_pos(100, 200, 300);
+		AABox bounds2 = mutable_compound->GetWorldSpaceBounds(Mat44::sRotationTranslation(rotation, vec3_pos), Vec3(1, 2, 3));
+		CHECK(bounds2 == AABox(vec3_pos, vec3_pos));
 
-		// Check that get world space bounds returns an invalid bounding box for double precision parameters
-		AABox bounds3 = mutable_compound->GetWorldSpaceBounds(DMat44::sRotationTranslation(rotation, DVec3(100, 200, 300)), Vec3(1, 2, 3));
-		CHECK(!bounds3.IsValid());
+		// Check that get world space bounds returns a single point for double precision parameters
+		AABox bounds3 = mutable_compound->GetWorldSpaceBounds(DMat44::sRotationTranslation(rotation, DVec3(vec3_pos)), Vec3(1, 2, 3));
+		CHECK(bounds3 == AABox(vec3_pos, vec3_pos));
+
+		// Add a shape
+		mutable_compound->AddShape(Vec3::sZero(), Quat::sIdentity(), new BoxShape(Vec3::sReplicate(1.0f)));
+		AABox bounds4 = mutable_compound->GetLocalBounds();
+		CHECK(bounds4 == AABox(Vec3::sReplicate(-1.0f), Vec3::sReplicate(1.0f)));
+
+		// Remove it again
+		mutable_compound->RemoveShape(0);
+
+		// Check that the bounding box has zero size again
+		AABox bounds5 = mutable_compound->GetLocalBounds();
+		CHECK(bounds5 == AABox(Vec3::sZero(), Vec3::sZero()));
 	}
 
 	TEST_CASE("TestSaveMeshShape")
@@ -868,7 +881,7 @@ TEST_SUITE("ShapeTests")
 		AllHitCollisionCollector<CollideShapeCollector> collector;
 		CollideShapeSettings settings;
 		settings.mCollectFacesMode = ECollectFacesMode::CollectFaces;
-		CollisionDispatch::sCollideShapeVsShape(box, compound, Vec3::sReplicate(1.0f), Vec3::sReplicate(1.0f), Mat44::sTranslation(Vec3(100.0f, 0, 100.0f)), Mat44::sIdentity(), SubShapeIDCreator(), SubShapeIDCreator(), settings, collector);
+		CollisionDispatch::sCollideShapeVsShape(box, compound, Vec3::sOne(), Vec3::sOne(), Mat44::sTranslation(Vec3(100.0f, 0, 100.0f)), Mat44::sIdentity(), SubShapeIDCreator(), SubShapeIDCreator(), settings, collector);
 		CHECK(collector.mHits.size() == triangles[0].size() + triangles[1].size());
 		for (const CollideShapeResult &r : collector.mHits)
 		{
@@ -895,52 +908,5 @@ TEST_SUITE("ShapeTests")
 
 			CHECK(user_data == expected_user_data);
 		}
-	}
-
-	TEST_CASE("TestMutableCompoundShapeAdjustCenterOfMass")
-	{
-		// Start with a box at (-1 0 0)
-		MutableCompoundShapeSettings settings;
-		Ref<Shape> box_shape1 = new BoxShape(Vec3::sReplicate(1.0f));
-		box_shape1->SetUserData(1);
-		settings.AddShape(Vec3(-1.0f, 0.0f, 0.0f), Quat::sIdentity(), box_shape1);
-		Ref<MutableCompoundShape> shape = StaticCast<MutableCompoundShape>(settings.Create().Get());
-		CHECK(shape->GetCenterOfMass() == Vec3(-1.0f, 0.0f, 0.0f));
-		CHECK(shape->GetLocalBounds() == AABox(Vec3::sReplicate(-1.0f), Vec3::sReplicate(1.0f)));
-
-		// Check that we can hit the box
-		AllHitCollisionCollector<CollidePointCollector> collector;
-		shape->CollidePoint(Vec3(-0.5f, 0.0f, 0.0f) - shape->GetCenterOfMass(), SubShapeIDCreator(), collector);
-		CHECK((collector.mHits.size() == 1 && shape->GetSubShapeUserData(collector.mHits[0].mSubShapeID2) == 1));
-		collector.Reset();
-		CHECK(collector.mHits.empty());
-
-		// Now add another box at (1 0 0)
-		Ref<Shape> box_shape2 = new BoxShape(Vec3::sReplicate(1.0f));
-		box_shape2->SetUserData(2);
-		shape->AddShape(Vec3(1.0f, 0.0f, 0.0f), Quat::sIdentity(), box_shape2);
-		CHECK(shape->GetCenterOfMass() == Vec3(-1.0f, 0.0f, 0.0f));
-		CHECK(shape->GetLocalBounds() == AABox(Vec3(-1.0f, -1.0f, -1.0f), Vec3(3.0f, 1.0f, 1.0f)));
-
-		// Check that we can hit both boxes
-		shape->CollidePoint(Vec3(-0.5f, 0.0f, 0.0f) - shape->GetCenterOfMass(), SubShapeIDCreator(), collector);
-		CHECK((collector.mHits.size() == 1 && shape->GetSubShapeUserData(collector.mHits[0].mSubShapeID2) == 1));
-		collector.Reset();
-		shape->CollidePoint(Vec3(0.5f, 0.0f, 0.0f) - shape->GetCenterOfMass(), SubShapeIDCreator(), collector);
-		CHECK((collector.mHits.size() == 1 && shape->GetSubShapeUserData(collector.mHits[0].mSubShapeID2) == 2));
-		collector.Reset();
-
-		// Adjust the center of mass
-		shape->AdjustCenterOfMass();
-		CHECK(shape->GetCenterOfMass() == Vec3::sZero());
-		CHECK(shape->GetLocalBounds() == AABox(Vec3(-2.0f, -1.0f, -1.0f), Vec3(2.0f, 1.0f, 1.0f)));
-
-		// Check that we can hit both boxes
-		shape->CollidePoint(Vec3(-0.5f, 0.0f, 0.0f) - shape->GetCenterOfMass(), SubShapeIDCreator(), collector);
-		CHECK((collector.mHits.size() == 1 && shape->GetSubShapeUserData(collector.mHits[0].mSubShapeID2) == 1));
-		collector.Reset();
-		shape->CollidePoint(Vec3(0.5f, 0.0f, 0.0f) - shape->GetCenterOfMass(), SubShapeIDCreator(), collector);
-		CHECK((collector.mHits.size() == 1 && shape->GetSubShapeUserData(collector.mHits[0].mSubShapeID2) == 2));
-		collector.Reset();
 	}
 }

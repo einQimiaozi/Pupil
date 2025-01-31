@@ -22,6 +22,5 @@ namespace Pupil {
         std::shared_ptr<VulkanRHI> rhi;
         std::shared_ptr<Log> log_system;
     };
-    // 定义一个可以被全局调用的global_context
     extern RuntimeGlobalContext runtime_global_context;
 }

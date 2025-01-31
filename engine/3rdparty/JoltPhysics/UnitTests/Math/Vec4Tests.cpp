@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "UnitTestFramework.h"
+#include <Jolt/Core/StringTools.h>
 
 TEST_SUITE("Vec4Tests")
 {
@@ -592,7 +593,7 @@ TEST_SUITE("Vec4Tests")
 	{
 		// Check edge cases
 		CHECK(Vec4::sReplicate(0.0f).ASin() == Vec4::sZero());
-		CHECK(Vec4::sReplicate(1.0f).ASin() == Vec4::sReplicate(0.5f * JPH_PI));
+		CHECK(Vec4::sOne().ASin() == Vec4::sReplicate(0.5f * JPH_PI));
 		CHECK(Vec4::sReplicate(-1.0f).ASin() == Vec4::sReplicate(-0.5f * JPH_PI));
 
 		double ma = 0.0;
@@ -600,7 +601,7 @@ TEST_SUITE("Vec4Tests")
 		for (float x = -1.0f; x <= 1.0f; x += 1.0e-3f)
 		{
 			// Create a vector with intermediate values
-			Vec4 xv = Vec4::sMin(Vec4::sReplicate(x) + Vec4(0.0e-4f, 2.5e-4f, 5.0e-4f, 7.5e-4f), Vec4::sReplicate(1.0f));
+			Vec4 xv = Vec4::sMin(Vec4::sReplicate(x) + Vec4(0.0e-4f, 2.5e-4f, 5.0e-4f, 7.5e-4f), Vec4::sOne());
 
 			// Calculate asin
 			Vec4 va = xv.ASin();
@@ -625,7 +626,7 @@ TEST_SUITE("Vec4Tests")
 	{
 		// Check edge cases
 		CHECK(Vec4::sReplicate(0.0f).ACos() == Vec4::sReplicate(0.5f * JPH_PI));
-		CHECK(Vec4::sReplicate(1.0f).ACos() == Vec4::sZero());
+		CHECK(Vec4::sOne().ACos() == Vec4::sZero());
 		CHECK(Vec4::sReplicate(-1.0f).ACos() == Vec4::sReplicate(JPH_PI));
 
 		double ma = 0.0;
@@ -633,7 +634,7 @@ TEST_SUITE("Vec4Tests")
 		for (float x = -1.0f; x <= 1.0f; x += 1.0e-3f)
 		{
 			// Create a vector with intermediate values
-			Vec4 xv = Vec4::sMin(Vec4::sReplicate(x) + Vec4(0.0e-4f, 2.5e-4f, 5.0e-4f, 7.5e-4f), Vec4::sReplicate(1.0f));
+			Vec4 xv = Vec4::sMin(Vec4::sReplicate(x) + Vec4(0.0e-4f, 2.5e-4f, 5.0e-4f, 7.5e-4f), Vec4::sOne());
 
 			// Calculate acos
 			Vec4 va = xv.ACos();
@@ -723,5 +724,11 @@ TEST_SUITE("Vec4Tests")
 		}
 
 		CHECK(ma < 3.0e-7);
+	}
+
+	TEST_CASE("TestVec4ConvertToString")
+	{
+		Vec4 v(1, 2, 3, 4);
+		CHECK(ConvertToString(v) == "1, 2, 3, 4");
 	}
 }

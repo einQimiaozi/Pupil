@@ -1,6 +1,6 @@
 ﻿#include <filesystem>
 
-#include "editor.h"
+#include "editor/editor.h"
 #include "engine.h"
 
 int main(int argc, char** argv) {

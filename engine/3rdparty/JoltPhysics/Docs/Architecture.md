@@ -12,7 +12,7 @@ We use a pretty traditional physics engine setup, so \ref Body "bodies" in our s
 
 Bodies can either be:
 - [static](@ref EMotionType) (not moving or simulating)
-- [dynamic](@ref EMotionType) (moved by forces) or 
+- [dynamic](@ref EMotionType) (moved by forces) or
 - [kinematic](@ref EMotionType) (moved by velocities only).
 
 Moving bodies have a [MotionProperties](@ref MotionProperties) object that contains information about the movement of the object. Static bodies do not have this to save space (but they can be configured to have it if a static body needs to become dynamic during its lifetime by setting [BodyCreationSettings::mAllowDynamicOrKinematic](@ref BodyCreationSettings::mAllowDynamicOrKinematic)).
@@ -39,7 +39,7 @@ Always use the batch adding functions when possible! Adding many bodies, one at 
 
 You can call AddBody, RemoveBody, AddBody, RemoveBody to temporarily remove and later reinsert a body into the simulation.
 
-## Multithreaded Access 
+## Multithreaded Access
 
 Jolt is designed to be accessed from multiple threads so the body interface comes in two flavors: A locking and a non-locking variant. The locking variant uses a mutex array (a fixed size array of mutexes, bodies are associated with a mutex through hashing and multiple bodies use the same mutex, see [MutexArray](@ref MutexArray)) to prevent concurrent access to the same body. The non-locking variant doesn't use mutexes, so requires the user to be careful.
 
@@ -182,6 +182,23 @@ An example of saving a shape in binary format:
 
 As the library does not offer an exporter from content creation packages and since most games will have their own content pipeline, we encourage you to store data in your own format, cook data while cooking the game data and store the result using the SaveBinaryState interface (and provide a way to force a re-cook when the library is updated).
 
+A possible pattern for serializing binary data in your own engine could be:
+
+* EngineBody at runtime creates a Body. Note that the prefix 'Engine' means that it's a class in your own engine.
+* It links to an EngineShape, which wraps a Shape.
+* EngineShape comes in different flavors, e.g. EngineMeshShape, EngineSphereShape etc.
+* EngineMeshShape contains the uncompressed mesh data (in a format that's editable in your tools).
+* When 'cooking' the game data:
+  * Create a MeshShape.
+  * Save it using Shape::SaveWithChildren in a binary blob that's associated with the EngineMeshShape (could be in an attribute that's an array of bytes).
+  * Throw away the uncompressed mesh data.
+* When loading the EngineMeshShape using your own serialization system, also restore the MeshShape from the binary blob using Shape::sRestoreWithChildren.
+* Your serialization system should take care that the pointer between EngineBody and EngineShape is restored.
+* There are some tricks for sharing Shapes, e.g. an EngineCompoundShape links to multiple child EngineShapes:
+  * At cooking time create a StaticCompoundShape.
+  * Before writing the shape to the binary blob with Shape::SaveWithChildren it inserts all leaf shapes (the Shape associated with the child EngineShape) in the Shape::ShapeToIDMap so they won't be included in the binary blob.
+  * Before loading the binary blob with Shape::sRestoreWithChildren prepopulate the Shape::IDToShapeMap with the pointers to the restored Shape's from the child EngineShapes (this again assumes that your own serialization system is capable of restoring the pointers between EngineCompoundShape and the child EntityShapes).
+
 ### Convex Radius {#convex-radius}
 
 In order to speed up the collision detection system, all convex shapes use a convex radius. The provided shape will first be shrunken by the convex radius and then inflated again by the same amount, resulting in a rounded off shape:
@@ -245,10 +262,10 @@ A safer way of scaling shapes is provided by the Shape::ScaleShape function:
 
 	JPH::Shape::ShapeResult my_scaled_shape = my_non_scaled_shape->ScaleShape(JPH::Vec3(x_scale, y_scale, z_scale));
 
-This function will check if a scale is valid for a particular shape and if a scale is not valid, it will produce the closest scale that is valid. 
+This function will check if a scale is valid for a particular shape and if a scale is not valid, it will produce the closest scale that is valid.
 For example, if you scale a CompoundShape that has rotated sub shapes, a non-uniform scale would cause shearing. In that case the Shape::ScaleShape function will create a new compound shape and scale the sub shapes (losing the shear) rather than creating a ScaledShape around the entire CompoundShape.
 
-Updating scaling after a body is created is also possible, but should be done with care. Imagine a sphere in a pipe, scaling the sphere so that it becomes bigger than the pipe creates an impossible situation as there is no way to resolve the collision anymore. 
+Updating scaling after a body is created is also possible, but should be done with care. Imagine a sphere in a pipe, scaling the sphere so that it becomes bigger than the pipe creates an impossible situation as there is no way to resolve the collision anymore.
 Please take a look at the [DynamicScaledShape](https://github.com/jrouwe/JoltPhysics/blob/master/Samples/Tests/ScaledShapes/DynamicScaledShape.cpp) demo. The reason that no ScaledShape::SetScale function exists is to ensure thread safety when collision queries are being executed while shapes are modified.
 
 Note that there are many functions that take a scale in Jolt (e.g. CollisionDispatch::sCollideShapeVsShape), usually the shape is scaled relative to its center of mass. The Shape::ScaleShape function scales the shape relative to the origin of the shape.
@@ -282,6 +299,11 @@ When you make a sensor Kinematic or Dynamic and activate it, it will also detect
 To create a sensor, either set [BodyCreationSettings::mIsSensor](@ref BodyCreationSettings::mIsSensor) to true when constructing a body or set it after construction through [Body::SetIsSensor](@ref Body::SetIsSensor). A sensor can only use the discrete motion quality type at this moment.
 
 To make sensors detect collisions with static objects, set the [BodyCreationSettings::mCollideKinematicVsNonDynamic](@ref BodyCreationSettings::mCollideKinematicVsNonDynamic) to true or call [Body::SetCollideKinematicVsNonDynamic](@ref Body::SetCollideKinematicVsNonDynamic). Note that it can place a large burden on the collision detection system if you have a large sensor intersect with e.g. a large mesh terrain or a height field as you will get many contact callbacks and these contacts will take up a lot of space in the contact cache. Ensure that your sensor is in an object layer that collides with as few static bodies as possible.
+
+To temporarily disable a sensor, choose between:
+
+* Remove the sensor by calling BodyInterface::RemoveBody and re-add it later again with BodyInterface::AddBody.
+* Change the collision layer using BodyInterface::SetObjectLayer to a layer that doesn't collide with anything (possibly also in a BroadPhaseLayer that doesn't collide with anything)
 
 ## Sleeping {#sleeping-bodies}
 
@@ -420,7 +442,7 @@ The following sections describe the collision detection system in more detail.
 
 ## Broad Phase {#broad-phase}
 
-When bodies are added to the PhysicsSystem, they are inserted in the broad phase ([BroadPhaseQuadTree](@ref BroadPhaseQuadTree)). This provides quick coarse collision detection based on the axis aligned bounding box (AABB) of a body. 
+When bodies are added to the PhysicsSystem, they are inserted in the broad phase ([BroadPhaseQuadTree](@ref BroadPhaseQuadTree)). This provides quick coarse collision detection based on the axis aligned bounding box (AABB) of a body.
 
 ![To quickly test if two objects overlap you can check if their axis aligned bounding boxes overlap. If they do, a check between the actual shapes is needed to be sure.](Images/EllipsoidAABB.png)
 
@@ -457,7 +479,7 @@ As an example we will use a simple enum as ObjectLayer:
 * NON_MOVING - Layer for all static objects.
 * MOVING - Layer for all regular dynamic bodies.
 * DEBRIS - Layer for all debris dynamic bodies, we want to test these only against the static geometry because we want to save some simulation cost.
-* BULLET - Layer for high detail collision bodies that we attach to regular dynamic bodies. These are not used for simulation but we want extra precision when we shoot with bullets.
+* BULLET - Layer for high detail collision bodies that we co-locate with regular dynamic bodies. These are bodies that are not used for simulation but are moved to follow the dynamic bodies and provide more precise geometry for ray tests to simulate shooting bullets. See [Level of Detail](@ref level-of-detail) for more information.
 * WEAPON - This is a query layer so we don't create any bodies with this layer but we use it when doing ray cast querying for our weapon system.
 
 We define the following object layers to collide:
@@ -489,14 +511,26 @@ For convenience two filtering implementations are provided:
 
 Now that we know about the basics, we list the order in which the collision detection pipeline goes through the various collision filters:
 
+![Collision engine flow.](Images/CollisionFlow.jpg)
+
 * Broadphase layer: At this stage, the object layer is tested against the broad phase trees that are relevant by checking the [ObjectVsBroadPhaseLayerFilter](@ref ObjectVsBroadPhaseLayerFilter).
 * Object layer: Once the broad phase layer test succeeds, we will test object layers vs object layers through [ObjectLayerPairFilter](@ref ObjectLayerPairFilter) (used for simulation) and [ObjectLayerFilter](@ref ObjectLayerFilter) (used for collision queries). The default implementation of ObjectLayerFilter is DefaultObjectLayerFilter and uses ObjectLayerPairFilter so the behavior is consistent between simulation and collision queries.
-* Group filter: Most expensive filtering (bounding boxes already overlap), used only during simulation. Allows you fine tune collision e.g. by discarding collisions between bodies connected by a constraint. See [GroupFilter](@ref GroupFilter) and implementation for ragdolls [GroupFilterTable](@ref GroupFilterTable).
-* Body filter: This filter is used instead of the group filter if you do collision queries like CastRay. See [BodyFilter](@ref BodyFilter).
-* Shape filter: This filter is used only during collision queries and can be used to filter out individual (sub)shapes. See [ShapeFilter](@ref ShapeFilter).
-* Contact listener: During simulation, after all collision detection work has been performed you can still choose to discard a contact point. This is a very expensive way of rejecting collisions as most of the work is already done. See [ContactListener](@ref ContactListener).
+* [GroupFilter](@ref GroupFilter): Used only during simulation and runs after bounding boxes have found to be overlapping. Allows you fine tune collision e.g. by discarding collisions between bodies connected by a constraint. See e.g. [GroupFilterTable](@ref GroupFilterTable) which implements filtering for bodies within a ragdoll.
+* [BodyFilter](@ref BodyFilter): This filter is used instead of the group filter if you do collision queries like CastRay.
+* Shape filter: This filter is used both during queries ([ShapeFilter](@ref ShapeFilter)) and simulation ([SimShapeFilter](@ref SimShapeFilter)) and can be used to filter out individual shapes of a compound. To set the shape filter for the simulation use PhysicsSystem::SetSimShapeFilter.
+* [ContactListener](@ref ContactListener): During simulation, after all collision detection work has been performed you can still choose to discard a contact point. This is a very expensive way of rejecting collisions as most of the work is already done.
 
 To avoid work, try to filter out collisions as early as possible.
+
+## Level of Detail {#level-of-detail}
+
+Bodies can only exist in a single layer. If you want a body with a low detail collision shape for simulation (in the example above: MOVING layer) and a high detail collision shape for collision detection (BULLET layer), you'll need to create 2 Bodies.
+The low detail body should be dynamic. The high detail body should be kinematic, or if it doesn't interact with other dynamic objects it can also be static.
+After calling PhysicsSystem::Update, you'll need to loop over these dynamic bodies and call BodyInterface::MoveKinematic in case the high detail body is kinematic, or BodyInterface::SetPositionAndRotation in case the high detail body is static.
+
+Alternatively, you can put a high detail and a low detail shape in a StaticCompoundShape and use PhysicsSystem::SetSimShapeFilter to filter out the high detail shape during simulation.
+Another ShapeFilter would filter out the low detail shape during collision queries (e.g. through NarrowPhaseQuery).
+You can use Shape::GetUserData to determine if a shape is a high or a low detail shape.
 
 ## Continuous Collision Detection {#continuous-collision-detection}
 
@@ -524,7 +558,7 @@ Whenever a body hits an inactive edge, the contact normal is the face normal. Wh
 
 By tweaking MeshShapeSettings::mActiveEdgeCosThresholdAngle or HeightFieldShapeSettings::mActiveEdgeCosThresholdAngle you can determine the angle at which an edge is considered an active edge. By default this is 5 degrees, making this bigger reduces the amount of ghost collisions but can create simulation artifacts if you hit the edge straight on.
 
-To further reduce ghost collisions, you can turn on BodyCreationSettings::mEnhancedInternalEdgeRemoval. When enabling this setting, additional checks will be made at run-time to detect if an edge is active or inactive based on all of the contact points between the two bodies. Beware that this algorithm only considers 2 bodies at a time, so if the two green boxes above belong to two different bodies, the ghost collision can still occur. Use a StaticCompoundShape to combine the boxes in a single body to allow the system to eliminate ghost collisions between the blue and the two green boxes. You can also use this functionality for your custom collision tests by making use of InternalEdgeRemovingCollector. 
+To further reduce ghost collisions, you can turn on BodyCreationSettings::mEnhancedInternalEdgeRemoval. When enabling this setting, additional checks will be made at run-time to detect if an edge is active or inactive based on all of the contact points between the two bodies. Beware that this algorithm only considers 2 bodies at a time, so if the two green boxes above belong to two different bodies, the ghost collision can still occur. Use a StaticCompoundShape to combine the boxes in a single body to allow the system to eliminate ghost collisions between the blue and the two green boxes. You can also use this functionality for your custom collision tests by making use of InternalEdgeRemovingCollector.
 
 # Character Controllers {#character-controllers}
 
@@ -617,16 +651,23 @@ It is quite difficult to verify cross platform determinism, so this feature is l
 * macOS clang ARM 64-bit with NEON
 * Linux clang x86 64-bit with AVX2
 * Linux clang ARM 64-bit with NEON
+* Linux clang ARM 32-bit
 * Linux gcc x86 64-bit with AVX2
 * Linux gcc ARM 64-bit with NEON
+* Linux gcc RISC-V 64-bit
+* Linux gcc PowerPC (Little Endian) 64-bit
+* Linux gcc LoongArch 64-bit
 * WASM emscripten running in nodejs
 
 The most important things to look out for in your own application:
 
 * Compile your application mode in Precise mode (clang: -ffp-model=precise, MSVC: /fp:precise)
 * Turn off floating point contract operations (clang: -ffp-contract=off)
-* Do not use the standard trigonometry functions (sin, cos etc.) as they have different implementations on different platforms, use Jolt's functions (Sin, Cos etc.)
-* Do not use std::sort as it has a different implementation on different platforms, use Jolt's QuickSort function
+* Make sure the FPU state is consistent across platforms / threads. Check the floating point rounding behavior (should be nearest). Check that the denormals are zero (DAZ) and flush to zero (FTZ) flags are set consistently.
+* Do not use the standard trigonometry functions (`sin`, `cos` etc.) as they have different implementations on different platforms, use Jolt's functions ([Sin](@ref Sin), [Cos](@ref Cos) etc.).
+* Do not use `std::sort` as it has a different implementation on different platforms, use [QuickSort](@ref QuickSort) instead.
+* Do not use `std::push_heap` and `std::pop_heap` as it has a different implementation on different platforms when elements are equal, use [BinaryHeapPush](@ref BinaryHeapPush)/[BinaryHeapPop](@ref BinaryHeapPop) instead.
+* Do not use `std::hash` as it is also platform dependent, use [Hash](@ref Hash) instead.
 
 When running the Samples Application you can press ESC, Physics Settings and check the 'Check Determinism' checkbox. Before every simulation step we will record the state using the [StateRecorder](@ref StateRecorder) interface, rewind the simulation and do the step again to validate that the simulation runs deterministically. Some of the tests (e.g. the MultiThreaded) test will explicitly disable the check because they randomly add/remove bodies from different threads. This violates the rule that the API calls must be done in the same order so will not result in a deterministic simulation.
 
@@ -700,7 +741,7 @@ shape = nullptr;
 
 The Body class is a special case, it is destroyed through BodyInterface::DestroyBody (which internally destroys the Body).
 
-Jolt also supports routing all of its internal allocations through a custom allocation function. See: [Allocate](@ref Allocate), [Free](@ref Free), [AlignedAllocate](@ref AlignedAllocate) and [AlignedFree](@ref AlignedFree).
+Jolt also supports routing all of its internal allocations through a custom allocation function. See: [Allocate](@ref Allocate), [Reallocate](@ref Reallocate), [Free](@ref Free), [AlignedAllocate](@ref AlignedAllocate) and [AlignedFree](@ref AlignedFree).
 
 # The Simulation Step in Detail {#the-simulation-step-in-detail}
 

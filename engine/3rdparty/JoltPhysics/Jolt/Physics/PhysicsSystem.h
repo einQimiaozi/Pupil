@@ -21,6 +21,7 @@ class StateRecorder;
 class TempAllocator;
 class PhysicsStepListener;
 class SoftBodyContactListener;
+class SimShapeFilter;
 
 /// The main class for the physics system. It contains all rigid bodies and simulates them.
 ///
@@ -64,8 +65,16 @@ public:
 
 	/// Set the function that combines the restitution of two bodies and returns it
 	/// Default method is max(restitution1, restitution1)
-	void						SetCombineRestitution(ContactConstraintManager::CombineFunction inCombineRestition) { mContactManager.SetCombineRestitution(inCombineRestition); }
+	void						SetCombineRestitution(ContactConstraintManager::CombineFunction inCombineRestitution) { mContactManager.SetCombineRestitution(inCombineRestitution); }
 	ContactConstraintManager::CombineFunction GetCombineRestitution() const					{ return mContactManager.GetCombineRestitution(); }
+
+	/// Set/get the shape filter that will be used during simulation. This can be used to exclude shapes within a body from colliding with each other.
+	/// E.g. if you have a high detail and a low detail collision model, you can attach them to the same body in a StaticCompoundShape and use the ShapeFilter
+	/// to exclude the high detail collision model when simulating and exclude the low detail collision model when casting rays. Note that in this case
+	/// you would need to pass the inverse of inShapeFilter to the CastRay function. Pass a nullptr to disable the shape filter.
+	/// The PhysicsSystem does not own the ShapeFilter, make sure it stays alive during the lifetime of the PhysicsSystem.
+	void						SetSimShapeFilter(const SimShapeFilter *inShapeFilter)		{ mSimShapeFilter = inShapeFilter; }
+	const SimShapeFilter *		GetSimShapeFilter() const									{ return mSimShapeFilter; }
 
 	/// Control the main constants of the physics simulation
 	void						SetPhysicsSettings(const PhysicsSettings &inSettings)		{ mPhysicsSettings = inSettings; }
@@ -117,6 +126,8 @@ public:
 	/// The world steps for a total of inDeltaTime seconds. This is divided in inCollisionSteps iterations.
 	/// Each iteration consists of collision detection followed by an integration step.
 	/// This function internally spawns jobs using inJobSystem and waits for them to complete, so no jobs will be running when this function returns.
+	/// The temp allocator is used, for example, to store the list of bodies that are in contact, how they form islands together
+	/// and data to solve the contacts between bodies. At the end of the Update call, all allocated memory will have been freed.
 	EPhysicsUpdateError			Update(float inDeltaTime, int inCollisionSteps, TempAllocator *inTempAllocator, JobSystem *inJobSystem);
 
 	/// Saving state for replay
@@ -293,6 +304,9 @@ private:
 
 	/// The soft body contact listener
 	SoftBodyContactListener *	mSoftBodyContactListener = nullptr;
+
+	/// The shape filter that is used to filter out sub shapes during simulation
+	const SimShapeFilter *		mSimShapeFilter = nullptr;
 
 	/// Simulation settings
 	PhysicsSettings				mPhysicsSettings;

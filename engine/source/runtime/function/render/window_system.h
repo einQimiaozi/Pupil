@@ -7,7 +7,6 @@
 #include "GLFW/glfw3.h"
 
 namespace Pupil {
-    // 窗口创建时信息
     struct WindowCreateInfo {
         int         width = 1280;
         int         height = 720;

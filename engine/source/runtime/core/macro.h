@@ -1,8 +1,10 @@
+#pragma once
+
 #include "function/global/global_context.h"
 #include "core/log/log.h"
 
 /*
- * 这里所有的宏在 .cpp 文件调用的时候直接include，不用在 .h 文件中include
+ * 杩欓噷鎵�鏈夌殑瀹忓湪 .cpp 鏂囦欢璋冪敤鐨勬椂鍊欑洿鎺nclude锛屼笉鐢ㄥ湪 .h 鏂囦欢涓璱nclude
  */
 
 #define LOG_HELPER(LOG_LEVEL, ...) \
