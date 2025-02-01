@@ -30,16 +30,16 @@ namespace Pupil {
                 }else if (name == "GlobalParticleRes") {
                     global_particle_res_path = value;
                 }
-                std::cout << "BinaryRootFolder: " << root_path << "\n";
-                std::cout << "AssetFolder: " << asset_path << "\n";
-                std::cout << "SchemaFolder: " << schema_path << "\n";
-                std::cout << "DefaultWorld: " << default_world_path << "\n";
-                std::cout << "BigIconFile: " << editor_big_icon_path << "\n";
-                std::cout << "SmallIconFile: " << editor_small_icon_path << "\n";
-                std::cout << "FontFile: " << editor_font_path << "\n";
-                std::cout << "GlobalRenderingRes: " << global_rendering_res_path << "\n";
-                std::cout << "GlobalParticleRes: " << global_particle_res_path << "\n";
             }
         }
+        std::cout << "BinaryRootFolder: " << root_path << "\n";
+        std::cout << "AssetFolder: " << asset_path << "\n";
+        std::cout << "SchemaFolder: " << schema_path << "\n";
+        std::cout << "DefaultWorld: " << default_world_path << "\n";
+        std::cout << "BigIconFile: " << editor_big_icon_path << "\n";
+        std::cout << "SmallIconFile: " << editor_small_icon_path << "\n";
+        std::cout << "FontFile: " << editor_font_path << "\n";
+        std::cout << "GlobalRenderingRes: " << global_rendering_res_path << "\n";
+        std::cout << "GlobalParticleRes: " << global_particle_res_path << "\n";
     }
 }

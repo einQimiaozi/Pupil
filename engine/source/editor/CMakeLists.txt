@@ -9,4 +9,11 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PupilRuntime) # Runtime已经作为静态库被构建了，所以要链接过来
 
+set(POST_BUILD_COMMANDS
+  COMMAND ${CMAKE_COMMAND} -E copy "${RUNTIME_ROOT_DIR}/resource/config_manager/deployment/conf.ini" "${OUTPUT_DIR}/deployment/conf.ini"
+  COMMAND ${CMAKE_COMMAND} -E copy "${RUNTIME_ROOT_DIR}/resource/config_manager/development/conf.ini" "${OUTPUT_DIR}/development/conf.ini"
+)
+
+add_custom_command(TARGET ${TARGET_NAME} ${POST_BUILD_COMMANDS})
+
 set(PUPIL_EDITOR_HEADS "${EDITOR_HEADERS}" CACHE STRING "" FORCE)

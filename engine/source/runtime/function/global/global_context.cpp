@@ -4,12 +4,12 @@ namespace Pupil {
     RuntimeGlobalContext runtime_global_context;
 
     void RuntimeGlobalContext::startSystems(const std::string& config_file_path) {
+        log_system = std::make_shared<Log>();
+        LOG_INFO("logger initialized");
+
         config_manager = std::make_shared<ConfigManager>();
         config_manager->initialize(config_file_path);
         LOG_INFO("config manager initialized");
-
-        log_system = std::make_shared<Log>();
-        LOG_INFO("logger initialized");
 
         window_system = std::make_shared<WindowSystem>();
         WindowCreateInfo window_create_info;

@@ -8,7 +8,10 @@ set(TARGET_NAME Pupil)
 set(ENGINE_ROOT_DIR "${PUPIL_ROOT_DIR}/engine")
 set(EDITOR_ROOT_DIR "${PUPIL_ROOT_DIR}/editor")
 set(THIRD_PARTY_DIR "${ENGINE_ROOT_DIR}/3rdparty")
+set(ENGINE_SOURCE_DIR "${ENGINE_ROOT_DIR}/source")
+set(RUNTIME_ROOT_DIR "${ENGINE_SOURCE_DIR}/runtime")
 set(ENGINE_ASSET_DIR "/asset")
+set(OUTPUT_DIR "${PUPIL_ROOT_DIR}/build/engine/")
 
 add_definitions(-DPUPIL_ENGINE_ROOT_DIR="${ENGINE_ROOT_DIR}")
 
