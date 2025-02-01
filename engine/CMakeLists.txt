@@ -43,6 +43,9 @@ else()
   message(FATAL_ERROR "Unknown Platform")
 endif()
 
+# clear generated reflection template class
+file(REMOVE_RECURSE "${ENGINE_ROOT_DIR}/source/_generated")
+
 file(GLOB EDITOR_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 file(GLOB EDITOR_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 

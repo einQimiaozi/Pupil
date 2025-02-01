@@ -1,7 +1,5 @@
 /build
 /x64
-.vs
-.vscode
-.git
 engine/precompile/bin
 engine/source/_generated
+/.*/

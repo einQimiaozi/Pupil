@@ -5,6 +5,7 @@
 
 #include "function/render/window_system.h"
 #include "function/render/render_system.h"
+#include "resource/config_manager/config_manager.h"
 #include "platform/rhi/vulkan/vulkan_rhi.h"
 #include "core/log/log.h"
 #include "core/macro.h"
@@ -17,6 +18,7 @@ namespace Pupil {
         // destroy all global systems
         void shutdownSystems();
 
+        std::shared_ptr<ConfigManager> config_manager;
         std::shared_ptr<WindowSystem> window_system;
         std::shared_ptr<RenderSystem> render_system;
         std::shared_ptr<VulkanRHI> rhi;
