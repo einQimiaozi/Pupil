@@ -3,14 +3,15 @@
 #include <memory>
 #include <string>
 
-#include "function/render/window_system.h"
-#include "function/render/render_system.h"
-#include "resource/config_manager/config_manager.h"
-#include "platform/rhi/vulkan/vulkan_rhi.h"
-#include "core/log/log.h"
-#include "core/macro.h"
-
 namespace Pupil {
+    class FileSystem;
+    class ConfigManager;
+    class AssetManager;
+    class WindowSystem;
+    class RenderSystem;
+    class VulkanRHI;
+    class Log;
+
     class RuntimeGlobalContext {
     public:
         // create all global systems and initialize these systems
@@ -18,11 +19,14 @@ namespace Pupil {
         // destroy all global systems
         void shutdownSystems();
 
+        std::shared_ptr<FileSystem> file_system;
         std::shared_ptr<ConfigManager> config_manager;
+        std::shared_ptr<AssetManager> asset_manager;
         std::shared_ptr<WindowSystem> window_system;
         std::shared_ptr<RenderSystem> render_system;
         std::shared_ptr<VulkanRHI> rhi;
         std::shared_ptr<Log> log_system;
     };
+    
     extern RuntimeGlobalContext runtime_global_context;
 }

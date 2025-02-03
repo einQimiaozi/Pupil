@@ -1,7 +1,13 @@
 #include "engine.h"
+#include "core/reflection/reflection_register.h"
+#include "core/macro.h"
+#include "function/global/global_context.h"
+#include "function/render/render_system.h"
+#include "function/render/window_system.h"
 
 namespace Pupil {
     void PupilEngine::initialize(const std::string& config_file_path) {
+        Reflection::TypeMetaRegister::metaRegister();
         runtime_global_context.startSystems(config_file_path);
     }
 
@@ -17,11 +23,17 @@ namespace Pupil {
         return time_span.count();
     }
 
+    void PupilEngine::rendererTick(float delta_time) {
+        runtime_global_context.render_system->tick(delta_time);
+        return;
+    }
+
     bool PupilEngine::tickOneFrame(float delta_time) {
         bool tick_result = false;
 
-        tick_result = runtime_global_context.window_system->tickOneFrame();
+        rendererTick(delta_time);
 
+        tick_result = runtime_global_context.window_system->tickOneFrame();
         return !tick_result;
     }
 }

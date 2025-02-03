@@ -17,7 +17,9 @@ namespace Pupil {
         void shutdown();
 
         float calculateDeltaTime();
-        bool  tickOneFrame(float delta_time);
+        bool tickOneFrame(float delta_time);
+    private:
+        void rendererTick(float delta_time);
 
     protected:
         std::chrono::steady_clock::time_point tick_time_point_last = std::chrono::steady_clock::now();

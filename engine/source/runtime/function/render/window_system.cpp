@@ -49,6 +49,6 @@ namespace Pupil {
         title.str("");
 
         this->pollEvents();
-        return !this->shouldClose();
+        return this->shouldClose();
     }
 }

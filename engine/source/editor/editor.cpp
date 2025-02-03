@@ -8,7 +8,10 @@ namespace Pupil {
         this->engine_runtime = engine_runtime;
 
         editor_ui = std::make_shared<EditorUI>();
-        WindowUIInitInfo ui_init_info = { runtime_global_context.window_system };
+        WindowUIInitInfo ui_init_info = { 
+            runtime_global_context.window_system,
+            runtime_global_context.render_system
+        };
 
         editor_ui->initialize(ui_init_info);
     }
@@ -17,11 +20,10 @@ namespace Pupil {
         assert(engine_runtime);
         assert(editor_ui);
         while (true) {
-            if (runtime_global_context.window_system->shouldClose()) {
+            float delta_time = engine_runtime->calculateDeltaTime();
+            if (!engine_runtime->tickOneFrame(delta_time)) {
                 return;
             }
-            float delta_time = engine_runtime->calculateDeltaTime();
-            engine_runtime->tickOneFrame(delta_time);
         }
     }
     void PupilEditor::shutdown() {}

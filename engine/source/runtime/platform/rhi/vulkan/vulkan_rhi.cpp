@@ -1,6 +1,7 @@
 #include "vulkan_rhi.h"
 #include "core/macro.h"
 #include "platform/rhi/vulkan/vulkan_utils.h"
+#include "runtime/function/render/window_system.h"
 
 namespace Pupil {
 	VkResult VulkanRHI::createInstance() {

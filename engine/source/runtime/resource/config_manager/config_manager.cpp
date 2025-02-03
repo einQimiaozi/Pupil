@@ -1,7 +1,5 @@
 #include "resource/config_manager/config_manager.h"
 
-#include <filesystem>
-
 namespace Pupil {
     void ConfigManager::initialize(const std::filesystem::path& config_file_path) {
         std::ifstream config_file(config_file_path);

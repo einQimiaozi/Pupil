@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cassert>
+
 #include "core/json.h"
 #include "core/reflection/reflection.h"
-
-#include <cassert>
 
 namespace Pupil {
     template<typename...>

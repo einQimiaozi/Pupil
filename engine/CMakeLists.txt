@@ -11,14 +11,14 @@ set(THIRD_PARTY_DIR "${ENGINE_ROOT_DIR}/3rdparty")
 set(ENGINE_SOURCE_DIR "${ENGINE_ROOT_DIR}/source")
 set(RUNTIME_ROOT_DIR "${ENGINE_SOURCE_DIR}/runtime")
 set(ENGINE_ASSET_DIR "/asset")
-set(OUTPUT_DIR "${PUPIL_ROOT_DIR}/build/engine/")
+set(OUTPUT_DIR "${PUPIL_ROOT_DIR}/bin")
 
 add_definitions(-DPUPIL_ENGINE_ROOT_DIR="${ENGINE_ROOT_DIR}")
 
 set(vulkan_include ${THIRD_PARTY_DIR}/VulkanSDK/include)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options("/MT")
+    add_compile_options("/MP")
 endif()
 
 if(WIN32)
@@ -67,3 +67,7 @@ add_dependencies("${CODEGEN_TARGET}" "PupilRelfectionGen")
 add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
 target_link_libraries(${TARGET_NAME} PupilEditor)
+
+set_target_properties(${TARGET_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)

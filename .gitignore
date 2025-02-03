@@ -3,3 +3,4 @@
 engine/precompile/bin
 engine/source/_generated
 /.*/
+/bin

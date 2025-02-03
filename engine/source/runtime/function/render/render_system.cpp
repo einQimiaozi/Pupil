@@ -8,4 +8,10 @@ namespace Pupil {
         VulkanConfig v_config;
         rhi->initiative(interface, v_config);
     }
+    
+    void RenderSystem::tick(float delta_time) {
+        // todo: process swap data between logic and render contexts
+
+        
+    }
 }

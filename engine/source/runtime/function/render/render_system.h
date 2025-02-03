@@ -15,6 +15,7 @@ namespace Pupil {
         RenderSystem() = default;
         ~RenderSystem() = default;
         void initialize(RenderInterface interface);
+        void tick(float delta_time);
     private:
         std::shared_ptr<VulkanRHI> rhi;
     };
