@@ -8,7 +8,7 @@ Pupil目前尚在开发中，开发无固定周期计划，正式Release版本�
 
 ## Pupil Architecture
 
-待补充, 暂时可参考开发日志
+待补充, 暂时可参考 [开发日志](developmentLog.md)
 
 # How to compile
 
