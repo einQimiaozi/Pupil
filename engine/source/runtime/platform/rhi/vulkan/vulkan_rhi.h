@@ -12,9 +12,9 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
-#include "core/log/log.h"
-#include "platform/rhi/vulkan/vulkan_struct.h"
-#include "function/render/render_system.h"
+#include "runtime/core/log/log.h"
+#include "runtime/platform/rhi/vulkan/vulkan_struct.h"
+#include "runtime/function/render/render_system.h"
 
 namespace Pupil {
     class WindowSystem;
@@ -41,9 +41,47 @@ namespace Pupil {
 
         bool initiative(RenderInterface interface, VulkanConfig config);
         void destroy();
-    private:
+
+        // create
+        VkResult createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
+        VkResult createSampler(const VkSamplerCreateInfo* pCreateInfo, VkSampler& sampler);
+        void createCubeMap(
+            VkImage& image, 
+            VkImageView& imageView, 
+            VmaAllocation& imageAllocation, 
+            uint32_t textureImageWidth, 
+            uint32_t textureImageHeight, 
+            std::array<void*, 6> textureImagePixels, 
+            VkFormat textureImageFormat, 
+            uint32_t miplevels
+        );
+        void createGlobalImage(
+            VkImage& image,
+            VkImageView& imageView,
+            VmaAllocation& imageAllocation,
+            uint32_t textureImageWidth,
+            uint32_t textureImageHeight,
+            void* textureImagePixels,
+            VkFormat textureImageFormat,
+            uint32_t miplevels = 0
+        );
+
+        // get
+        VkPhysicalDeviceProperties getPhysicalDeviceProperties();
+        VkResult mapMemory(VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData);
+
+        // destory
+        void destroySampler(VkSampler sampler);
+
+        // other
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    
+    public:
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice logicDevice = VK_NULL_HANDLE;
+
+    private:
         VkQueue graphicsQueue = VK_NULL_HANDLE;
         VkQueue presentQueue = VK_NULL_HANDLE;
         VkCommandPool defaultCommandPool = VK_NULL_HANDLE;
@@ -106,11 +144,11 @@ namespace Pupil {
         VkResult createAssetAllocator();
 
         // destroy
-        void vkDestroySemaphores(VkSemaphore semaphores[]);
-        void vkDestroyFences(VkFence fences[]);
-        void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+        void destroySemaphores(VkSemaphore semaphores[]);
+        void destroyFences(VkFence fences[]);
+        void destroyDebugUtilsMessengerEXT(VkInstance instance,
             const VkAllocationCallbacks* pAllocator,
             VkDebugUtilsMessengerEXT callback);
-        void DestroySwapChain();
+        void destroySwapChain();
     };
 }

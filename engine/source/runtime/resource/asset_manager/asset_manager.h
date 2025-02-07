@@ -6,8 +6,8 @@
 #include <sstream>
 #include <string>
 
-#include "runtime/core/macro.h"
-#include "runtime/core/serializer/serializer.h"
+#include "core/macro.h"
+#include "runtime/tools/serializer/serializer.h"
 #include "runtime/function/global/global_context.h"
 
 #include "_generated/serializer/all_serializer.h"
@@ -20,7 +20,7 @@ namespace Pupil {
             std::filesystem::path asset_path = std::filesystem::absolute(runtime_global_context.config_manager->root_path / asset_url);
             std::ifstream asset_json_file(asset_path);
             if (!asset_json_file) {
-                LOG_ERROR("open file: {} failed!", asset_path.generic_string());
+                LOG_ERROR("open file: {} failed!" + asset_path.generic_string());
                 return false;
             }
 

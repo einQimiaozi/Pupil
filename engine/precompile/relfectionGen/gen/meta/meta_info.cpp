@@ -7,11 +7,13 @@
 MetaInfo::MetaInfo(const Cursor& cursor) {
     for (auto& child : cursor.getChildren()) {
 
-        if (child.getKind() != CXCursor_AnnotateAttr)
+        if (child.getKind() != CXCursor_AnnotateAttr) {
             continue;
+        }
 
-        for (auto& prop : extractProperties(child))
+        for (auto& prop : extractProperties(child)) {
             m_properties[prop.first] = prop.second;
+        }
     }
 }
 
@@ -34,7 +36,7 @@ std::vector<MetaInfo::Property> MetaInfo::extractProperties(const Cursor& cursor
     static const std::string white_space_string = " \t\r\n";
 
     for (auto& property_item : properties) {
-        auto&& item_details = Utils::split(property_item, ":");
+        auto&& item_details = Utils::split(property_item, ";");
         auto&& temp_string  = Utils::trim(item_details[0], white_space_string);
         if (temp_string.empty()) {
             continue;

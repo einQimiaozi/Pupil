@@ -1,6 +1,6 @@
 #include "engine.h"
-#include "core/reflection/reflection_register.h"
-#include "core/macro.h"
+#include "runtime/tools/reflection/reflection_register.h"
+#include "runtime/core/macro.h"
 #include "function/global/global_context.h"
 #include "function/render/render_system.h"
 #include "function/render/window_system.h"

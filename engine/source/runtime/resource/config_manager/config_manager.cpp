@@ -1,9 +1,10 @@
-#include "resource/config_manager/config_manager.h"
+#include "runtime/resource/config_manager/config_manager.h"
 
 namespace Pupil {
     void ConfigManager::initialize(const std::filesystem::path& config_file_path) {
         std::ifstream config_file(config_file_path);
         std::string   config_line;
+        std::cout << "config file: " << config_file_path << "\n";
         while (std::getline(config_file, config_line)) {
             size_t seperate_pos = config_line.find_first_of('=');
             if (seperate_pos > 0 && seperate_pos < (config_line.length() - 1)) {
@@ -30,14 +31,5 @@ namespace Pupil {
                 }
             }
         }
-        std::cout << "BinaryRootFolder: " << root_path << "\n";
-        std::cout << "AssetFolder: " << asset_path << "\n";
-        std::cout << "SchemaFolder: " << schema_path << "\n";
-        std::cout << "DefaultWorld: " << default_world_path << "\n";
-        std::cout << "BigIconFile: " << editor_big_icon_path << "\n";
-        std::cout << "SmallIconFile: " << editor_small_icon_path << "\n";
-        std::cout << "FontFile: " << editor_font_path << "\n";
-        std::cout << "GlobalRenderingRes: " << global_rendering_res_path << "\n";
-        std::cout << "GlobalParticleRes: " << global_particle_res_path << "\n";
     }
 }

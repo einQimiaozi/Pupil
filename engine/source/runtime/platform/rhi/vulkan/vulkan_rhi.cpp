@@ -1,6 +1,6 @@
 #include "vulkan_rhi.h"
-#include "core/macro.h"
-#include "platform/rhi/vulkan/vulkan_utils.h"
+#include "runtime/core/macro.h"
+#include "runtime/platform/rhi/vulkan/vulkan_utils.h"
 #include "runtime/function/render/window_system.h"
 
 namespace Pupil {
@@ -404,6 +404,10 @@ namespace Pupil {
 		return VK_SUCCESS;
 	}
 
+	VkResult VulkanRHI::createSampler(const VkSamplerCreateInfo* pCreateInfo, VkSampler& sampler) {
+        return vkCreateSampler(logicDevice, pCreateInfo, nullptr, &sampler);
+	}
+
 	// 使用vma管理内存
 	VkResult VulkanRHI::createAssetAllocator() {
 		VmaVulkanFunctions vulkanFunctions = {};
@@ -411,7 +415,7 @@ namespace Pupil {
 		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
 
 		VmaAllocatorCreateInfo allocatorCreateInfo = {};
-		allocatorCreateInfo.vulkanApiVersion = getVulkanVersion();
+		allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
 		allocatorCreateInfo.physicalDevice = physicalDevice;
 		allocatorCreateInfo.device = logicDevice;
 		allocatorCreateInfo.instance = instance;
@@ -420,8 +424,295 @@ namespace Pupil {
 		return vmaCreateAllocator(&allocatorCreateInfo, &assetsAllocator);
 	}
 
+	VkResult VulkanRHI::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+		VkResult result;
+		VkBufferCreateInfo bufferInfo = {};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size = size;
+		bufferInfo.usage = usage;
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		if ((result = vkCreateBuffer(logicDevice, &bufferInfo, nullptr, &buffer)) != VK_SUCCESS) {
+			return result;
+		}
+
+		VkMemoryRequirements memRequirements;
+		vkGetBufferMemoryRequirements(logicDevice, buffer, &memRequirements);
+
+		VkMemoryAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memRequirements.size;
+		allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+		if ((result = vkAllocateMemory(logicDevice, &allocInfo, nullptr, &bufferMemory)) != VK_SUCCESS) {
+			return result;
+		}
+		vkBindBufferMemory(logicDevice, buffer, bufferMemory, 0);
+		return VK_SUCCESS;
+    }
+
+	void VulkanRHI::createCubeMap(
+		VkImage& image, 
+		VkImageView& imageView, 
+		VmaAllocation& imageAllocation, 
+		uint32_t textureImageWidth, 
+		uint32_t textureImageHeight, 
+		std::array<void*, 6> textureImagePixels, 
+		VkFormat textureImageFormat, 
+		uint32_t miplevels
+	) {
+		VkDeviceSize textureLayerByteSize;
+        VkDeviceSize cubeByteSize;
+        VkFormat     vulkanImageFormat;
+        switch (textureImageFormat) {
+            case VkFormat::VK_FORMAT_R8G8B8_UNORM:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 3;
+                vulkanImageFormat = VK_FORMAT_R8G8B8_UNORM;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8_SRGB:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 3;
+                vulkanImageFormat = VK_FORMAT_R8G8B8_SRGB;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8A8_UNORM:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 4;
+                vulkanImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8A8_SRGB:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 4;
+                vulkanImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+                break;
+            case VkFormat::VK_FORMAT_R32G32_SFLOAT:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 4 * 2;
+                vulkanImageFormat = VK_FORMAT_R32G32_SFLOAT;
+                break;
+            case VkFormat::VK_FORMAT_R32G32B32_SFLOAT:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 4 * 3;
+                vulkanImageFormat = VK_FORMAT_R32G32B32_SFLOAT;
+                break;
+            case VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT:
+                textureLayerByteSize = textureImageWidth * textureImageHeight * 4 * 4;
+                vulkanImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+                break;
+            default:
+                textureLayerByteSize = VkDeviceSize(-1);
+                LOG_ERROR("invalid textureLayerByteSize");
+                return;
+        }
+        // cube map有6个面
+        cubeByteSize = textureLayerByteSize * 6;
+
+        // create cubemap texture image
+        VkImageCreateInfo imageCreateInfo {};
+        imageCreateInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.flags         = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        imageCreateInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.extent.width  = static_cast<uint32_t>(textureImageWidth);
+        imageCreateInfo.extent.height = static_cast<uint32_t>(textureImageHeight);
+        imageCreateInfo.extent.depth  = 1;
+        imageCreateInfo.mipLevels     = miplevels;
+        imageCreateInfo.arrayLayers   = 6;
+        imageCreateInfo.format        = vulkanImageFormat;
+        imageCreateInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageCreateInfo.usage 		= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageCreateInfo.samples     = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        // vma管理创建好的image的内存分配
+        VkResult result = vmaCreateImage(assetsAllocator, &imageCreateInfo, &allocInfo, &image, &imageAllocation, NULL);
+		if (result != VK_SUCCESS) {
+			std::cout << "create image failed\n";
+		}
+
+        VkBuffer       inefficientStagingBuffer;
+        VkDeviceMemory inefficientStagingBufferMemory;
+        createBuffer(
+			cubeByteSize, 
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+			inefficientStagingBuffer, 
+			inefficientStagingBufferMemory
+		);
+
+        // 6个面按照offset都绑定到data上供cpu端操作，通过 inefficientStagingBufferMemory 把纹理数据拷贝到data中
+        void* data = NULL;
+        vkMapMemory(logicDevice, inefficientStagingBufferMemory, 0, cubeByteSize, 0, &data);
+        for (int i=0;i<6;i++) {
+            memcpy((void*)(static_cast<char*>(data) + textureLayerByteSize * i), textureImagePixels[i], static_cast<size_t>(textureLayerByteSize));
+        }
+        // inefficientStagingBufferMemory 用完了可以卸载了
+        vkUnmapMemory(logicDevice, inefficientStagingBufferMemory);
+
+        // 转换布局，把image转换到renderpass的dest布局
+        transitionImageLayout(
+			this, 
+			image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            6,
+            miplevels,
+            VK_IMAGE_ASPECT_COLOR_BIT
+		);
+        // 把inefficient_staging_buffer拷贝到image，这一步之后image就算搞定了
+        copyBufferToImage(
+			this,
+            inefficientStagingBuffer,
+            image,
+            static_cast<uint32_t>(textureImageWidth),
+            static_cast<uint32_t>(textureImageHeight),
+            6
+		);
+        // image搞定了，前面的所有buffer都可以释放了
+        vkDestroyBuffer(logicDevice, inefficientStagingBuffer, nullptr);
+        vkFreeMemory(logicDevice, inefficientStagingBufferMemory, nullptr);
+
+		// 创建mipmap纹理
+        generateMipmapsTexture(this, image, vulkanImageFormat, textureImageWidth, textureImageHeight, 6, miplevels);
+        // 最后创建imageview
+        imageView = createImageView(logicDevice, image, vulkanImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE, 6, miplevels).imageView;
+    }
+
+	void VulkanRHI::createGlobalImage(
+		VkImage& image,
+        VkImageView& imageView,
+        VmaAllocation& imageAllocation,
+        uint32_t textureImageWidth,
+        uint32_t textureImageHeight,
+    	void* textureImagePixels,
+        VkFormat textureImageFormat,
+        uint32_t miplevels
+	) {
+        VkDeviceSize textureByteSize;
+        VkFormat     vulkanImageFormat;
+        switch (textureImageFormat)
+        {
+            case VkFormat::VK_FORMAT_R8G8B8_UNORM:
+                textureByteSize   = textureImageWidth * textureImageHeight * 3;
+                vulkanImageFormat = VK_FORMAT_R8G8B8_UNORM;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8_SRGB:
+                textureByteSize   = textureImageWidth * textureImageHeight * 3;
+                vulkanImageFormat = VK_FORMAT_R8G8B8_SRGB;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8A8_UNORM:
+                textureByteSize   = textureImageWidth * textureImageHeight * 4;
+                vulkanImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+                break;
+            case VkFormat::VK_FORMAT_R8G8B8A8_SRGB:
+                textureByteSize   = textureImageWidth * textureImageHeight * 4;
+                vulkanImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+                break;
+            case VkFormat::VK_FORMAT_R32_SFLOAT:
+                textureByteSize = textureImageWidth * textureImageHeight * 4;
+                vulkanImageFormat = VK_FORMAT_R32_SFLOAT;
+                break;
+            case VkFormat::VK_FORMAT_R32G32_SFLOAT:
+                textureByteSize   = textureImageWidth * textureImageHeight * 4 * 2;
+                vulkanImageFormat = VK_FORMAT_R32G32_SFLOAT;
+                break;
+            case VkFormat::VK_FORMAT_R32G32B32_SFLOAT:
+                textureByteSize   = textureImageWidth * textureImageHeight * 4 * 3;
+                vulkanImageFormat = VK_FORMAT_R32G32B32_SFLOAT;
+                break;
+            case VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT:
+                textureByteSize   = textureImageWidth * textureImageHeight * 4 * 4;
+                vulkanImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+                break;
+            default:
+                LOG_ERROR("invalid textureByteSize");
+                break;
+        }
+
+        VkBuffer       inefficientStagingBuffer;
+        VkDeviceMemory inefficientStagingBufferMemory;
+        createBuffer(
+            textureByteSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            inefficientStagingBuffer,
+            inefficientStagingBufferMemory
+		);
+
+        void* data;
+        vkMapMemory(logicDevice, inefficientStagingBufferMemory, 0, textureByteSize, 0, &data);
+        memcpy(data, textureImagePixels, static_cast<size_t>(textureByteSize));
+        vkUnmapMemory(logicDevice, inefficientStagingBufferMemory);
+
+        uint32_t mip_levels = (miplevels != 0) ? miplevels : floor(log2(std::max(textureImageWidth, textureImageHeight))) + 1;
+
+        VkImageCreateInfo imageCreateInfo {};
+        imageCreateInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.flags         = 0;
+        imageCreateInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.extent.width  = textureImageWidth;
+        imageCreateInfo.extent.height = textureImageHeight;
+        imageCreateInfo.extent.depth  = 1;
+        imageCreateInfo.mipLevels     = mip_levels;
+        imageCreateInfo.arrayLayers   = 1;
+        imageCreateInfo.format        = vulkanImageFormat;
+        imageCreateInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageCreateInfo.usage 		= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageCreateInfo.samples     = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        vmaCreateImage(assetsAllocator, &imageCreateInfo, &allocInfo, &image, &imageAllocation, NULL);
+
+        transitionImageLayout(
+			this,
+            image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            1,
+            VK_IMAGE_ASPECT_COLOR_BIT
+		);
+        copyBufferToImage(this, inefficientStagingBuffer, image, textureImageWidth, textureImageHeight, 1);
+        transitionImageLayout(
+			this,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            1,
+            1,
+            VK_IMAGE_ASPECT_COLOR_BIT
+		);
+
+        vkDestroyBuffer(logicDevice, inefficientStagingBuffer, nullptr);
+        vkFreeMemory(logicDevice, inefficientStagingBufferMemory, nullptr);
+
+        // generate mipmapped image, not texture
+        generateMipmapsImage(this, image, textureImageWidth, textureImageHeight, mip_levels);
+
+        imageView = createImageView(
+			logicDevice,
+            image,
+            vulkanImageFormat,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            VK_IMAGE_VIEW_TYPE_2D,
+            1,
+        	mip_levels
+		).imageView;
+	}
+
+	// Get
+	VkPhysicalDeviceProperties VulkanRHI::getPhysicalDeviceProperties() {
+		VkPhysicalDeviceProperties properties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+		return properties;
+	}
+
+	VkResult VulkanRHI::mapMemory(VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) {
+		return vkMapMemory(logicDevice, memory, offset, size, flags, ppData);
+	}
+
 	// Destory
-	void VulkanRHI::DestroyDebugUtilsMessengerEXT(VkInstance instance,
+	void VulkanRHI::destroyDebugUtilsMessengerEXT(VkInstance instance,
 		const VkAllocationCallbacks* pAllocator,
 		VkDebugUtilsMessengerEXT callback) {
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -430,18 +721,54 @@ namespace Pupil {
 		}
 	}
 
-	void VulkanRHI::vkDestroySemaphores(VkSemaphore semaphores[]) {
+	void VulkanRHI::destroySemaphores(VkSemaphore semaphores[]) {
 		for (size_t i = 0; i < maxFrameFlight; i++) {
 			vkDestroySemaphore(logicDevice, semaphores[i], nullptr);
 		}
 	}
 
-	void VulkanRHI::vkDestroyFences(VkFence fences[]) {
+	void VulkanRHI::destroyFences(VkFence fences[]) {
 		for (size_t i = 0; i < maxFrameFlight; i++) {
 			vkDestroyFence(logicDevice, fences[i], nullptr);
 		}
 	}
 
+	void VulkanRHI::destroySampler(VkSampler sampler) {
+		vkDestroySampler(logicDevice, sampler, nullptr);
+	}
+
+	// other
+	VkCommandBuffer VulkanRHI::beginSingleTimeCommands() {
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = defaultCommandPool;
+		allocInfo.commandBufferCount = 1;
+		VkCommandBuffer commandBuffer;
+		vkAllocateCommandBuffers(logicDevice, &allocInfo, &commandBuffer);
+
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		_vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+		return commandBuffer;
+	}
+
+	void VulkanRHI::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+		_vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphicsQueue);
+		vkFreeCommandBuffers(logicDevice, defaultCommandPool, 1, &commandBuffer);
+	}
+
+	// Initiative
 	bool VulkanRHI::initiative(RenderInterface interface, VulkanConfig config) {
 		this->window = interface.window_system->window;
 		this->config = config;
@@ -572,10 +899,10 @@ namespace Pupil {
 	}
 
 	void VulkanRHI::destroy() {
-		vkDestroySemaphores(renderFinishedSemaphores);
-		vkDestroySemaphores(imageAvailableSemaphores);
-		vkDestroySemaphores(imageAvailableTexturescopySemaphores);
-		vkDestroyFences(inFlightFences);
+		destroySemaphores(renderFinishedSemaphores);
+		destroySemaphores(imageAvailableSemaphores);
+		destroySemaphores(imageAvailableTexturescopySemaphores);
+		destroyFences(inFlightFences);
 		LOG_INFO("Destory Sync Objects Success!");
 
 		for (uint8_t i = 0; i < maxFrameFlight; i++) {
@@ -605,7 +932,7 @@ namespace Pupil {
 
 		// 如果开启了debug模式，销毁debug messenger
 		if (config.enableValidation) {
-			DestroyDebugUtilsMessengerEXT(instance, nullptr, callback);
+			destroyDebugUtilsMessengerEXT(instance, nullptr, callback);
 			LOG_INFO("Destory Debug Messenger Success!");
 		}
 		vkDestroySurfaceKHR(instance, surface, nullptr);

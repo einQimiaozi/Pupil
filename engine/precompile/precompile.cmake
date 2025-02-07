@@ -6,7 +6,7 @@ configure_file(${PRECOMPILE_IN_PATH} ${PRECOMPILE_FILES})
 # use wine for linux
 if (CMAKE_HOST_WIN32)
     set(PRECOMPILE_PRE_EXE)
-	  set(PRECOMPILE_GEN ${PUPIL_ROOT_DIR}/build/engine/precompile/relfectionGen/Release/PupilRelfectionGen.exe)
+	  set(PRECOMPILE_GEN ${OUTPUT_DIR}/PupilRelfectionGen.exe)
     set(sys_include "*") 
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux" )
     set(PRECOMPILE_PRE_EXE)

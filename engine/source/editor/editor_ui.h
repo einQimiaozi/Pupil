@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/ui/window_ui.h"
+#include "runtime/function/ui/window_ui.h"
 
 namespace Pupil {
     class EditorUI : public WindowUI {

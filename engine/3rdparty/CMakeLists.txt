@@ -26,11 +26,6 @@ if(NOT TARGET stb)
     set_target_properties(stb PROPERTIES FOLDER stb)
 endif()
 
-if(NOT TARGET glm)
-    include(glm.cmake)
-    set_target_properties(glm PROPERTIES FOLDER glm)
-endif()
-
 if(NOT TARGET Jolt)
     option(TARGET_HELLO_WORLD "" OFF)
     option(TARGET_PERFORMANCE_TEST "" OFF)
@@ -71,11 +66,6 @@ if(NOT TARGET Jolt)
     else()
         target_compile_options(Jolt PRIVATE "-Wall")
     endif()
-endif()
-
-if(NOT TARGET glm)
-    include(glm.cmake)
-    set_target_properties(glm PROPERTIES FOLDER glm)
 endif()
 
 if(NOT TARGET spdlog)

@@ -6,9 +6,9 @@
 #include <string>
 
 #include "engine.h"
-#include "function/render/window_system.h"
-#include "function/global/global_context.h"
-#include "core/log/log.h"
+#include "runtime/function/render/window_system.h"
+#include "runtime/function/global/global_context.h"
+#include "runtime/core/log/log.h"
 
 namespace Pupil {
     class PupilEngine {

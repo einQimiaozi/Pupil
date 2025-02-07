@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "function/render/window_system.h"
-#include "function/render/render_system.h"
+#include "runtime/function/render/window_system.h"
+#include "runtime/function/render/render_system.h"
 
 namespace Pupil {
     struct WindowUIInitInfo {

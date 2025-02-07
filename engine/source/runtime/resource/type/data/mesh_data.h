@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "core/reflection/reflection.h"
+#include "runtime/tools/reflection/reflection.h"
 
 namespace Pupil {
     REFLECTION_TYPE(Vertex)

@@ -57,6 +57,7 @@ namespace Generator {
             for (auto field : class_temp->m_fields) {
                 if (!field->shouldCompile())
                     continue;
+
                 field_names.emplace_back(field->m_name);
                 bool is_array = field->m_type.find(vector_prefix) == 0;
                 if (is_array) {

@@ -43,10 +43,24 @@ endif()
 
 add_definitions(-DTIXML_USE_STL)
 
+set(COMPILE_MODE Release)
+if("$<CONFIG:Debug>")
+    set(COMPILE_MODE Debug)
+endif()
+
+set(POST_BUILD_COMMANDS
+  COMMAND ${CMAKE_COMMAND} -E copy "${PUPIL_ROOT_DIR}/build/engine/precompile/relfectionGen/${COMPILE_MODE}/PupilRelfectionGen.exe" "${OUTPUT_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy "${PUPIL_ROOT_DIR}/build/engine/precompile/relfectionGen/${COMPILE_MODE}/libclang.dll" "${OUTPUT_DIR}"
+)
+
 # copy resources on post build
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 	# mustache templates directory
 	COMMAND ${CMAKE_COMMAND} -E copy_directory
 		"${LLVM_SHARED_LIBRARY_DIR}"
 		$<TARGET_FILE_DIR:${TARGET_NAME}>
+)
+
+add_custom_command(
+    TARGET ${TARGET_NAME} ${POST_BUILD_COMMANDS}
 )

@@ -4,6 +4,7 @@
 #include "engine.h"
 
 static const char *CONFIG_FILE_PATH = "../development/conf.ini";
+// static const char *CONFIG_FILE_PATH = "D:/Pupil/bin/development/conf.ini";       // debug test case
 
 int main(int argc, char** argv) {
     // 引擎创建

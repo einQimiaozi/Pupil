@@ -1,14 +1,14 @@
 #include "global_context.h"
 
-#include "resource/type/data/mesh_data.h"
-#include "function/render/window_system.h"
-#include "function/render/render_system.h"
+#include "runtime/resource/type/data/mesh_data.h"
+#include "runtime/function/render/window_system.h"
+#include "runtime/function/render/render_system.h"
 #include "resource/config_manager/config_manager.h"
 #include "resource/asset_manager/asset_manager.h"
-#include "platform/rhi/vulkan/vulkan_rhi.h"
-#include "core/file_system/file_system.h"
-#include "core/log/log.h"
-#include "core/macro.h"
+#include "runtime/platform/rhi/vulkan/vulkan_rhi.h"
+#include "runtime/core/file_system/file_system.h"
+#include "runtime/core/log/log.h"
+#include "runtime/core/macro.h"
 
 namespace Pupil {
     RuntimeGlobalContext runtime_global_context;

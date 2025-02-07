@@ -1,22 +1,32 @@
-# 编译
+# What is Pupil
+
+Pupil 是一款悲伤图形处理引擎，由 PupilLab 出品，PupilLab 由 悲伤与荆棘技术基金会支持。
+
+Pupil目前尚在开发中，开发无固定周期计划，正式Release版本发售前，PupilLab会保持每周至少一次commit。
+
+**Pupil doesn't care about anything, but please don't forget Pupil.**
+
+## Pupil Architecture
+
+待补充, 暂时可参考开发日志
+
+# How to compile
 
 ```bash
 mkdir build
 cd build
 cmake ..
-cmake --build . --config Release
+cmake --build . --config ${Debug|Release}
 ```
 
 生成好的项目可执行文件路径
 
 ```
-./Pupil/build/engine/Release/Pupil.exe
+./Pupil/bin/${Debug|Release}/Pupil.exe
 ```
 
 
 **下述编译方案为旧方案，已不再使用，但自行配置cmake_converter和visual studio后也可以使用**
-
-# 编译
 
 如果不修改代码的话
 

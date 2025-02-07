@@ -5,8 +5,8 @@
 
 #include "engine.h"
 #include "editor_ui.h"
-#include "function/global/global_context.h"
-#include "core/macro.h"
+#include "runtime/function/global/global_context.h"
+#include "runtime/core/macro.h"
 
 namespace Pupil {
     class PupilEditor {

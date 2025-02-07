@@ -155,7 +155,7 @@ int MetaParser::parse(void) {
         std::cerr << input_path << " is not exist" << std::endl;
         return -2;
     }
-
+    
     m_translation_unit = clang_createTranslationUnitFromSourceFile(
         m_index, m_source_include_file_name.c_str(), static_cast<int>(arguments.size()), arguments.data(), 0, nullptr);
     auto cursor = clang_getTranslationUnitCursor(m_translation_unit);
