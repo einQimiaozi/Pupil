@@ -5,6 +5,8 @@
 #include <assert.h>
 
 #include "runtime/function/render/render_swap_context.h"
+#include "runtime/function/render/render_camera.h"
+#include "runtime/function/render/render_scene.h"
 
 namespace Pupil {
     class WindowSystem;
@@ -24,5 +26,7 @@ namespace Pupil {
     private:
         std::shared_ptr<VulkanRHI> rhi;
         std::shared_ptr<RenderResourceBase> render_resource;
+        std::shared_ptr<RenderCamera> render_camera;
+        std::shared_ptr<RenderScene> render_scene;
     };
 }

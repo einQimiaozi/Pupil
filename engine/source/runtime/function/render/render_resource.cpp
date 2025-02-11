@@ -15,51 +15,24 @@
 namespace Pupil {
     void RenderResource::clear() {}
 
-    void RenderResource::
-    uploadGlobalRenderResource(std::shared_ptr<VulkanRHI> rhi, LevelResourceDesc level_resource_desc) {
+    void RenderResource::uploadGlobalRenderResource(std::shared_ptr<VulkanRHI> rhi, LevelResourceDesc level_resource_desc) {
         // create and map global storage buffer
         // 把渲染用的一些buffer通过rhi映射到cpu端，后续可以用global_render_resource._storage_buffer这个成员在cpu端操作内存
         createAndMapStorageBuffer(rhi);
 
         // 这部分就是单纯的读贴图，转换为TextureData格式
         // sky box irradiance
-        SkyBoxIrradianceMap skybox_irradiance_map        = level_resource_desc.ibl_resource_desc.skybox_irradiance_map;
-        std::shared_ptr<TextureData> irradiace_pos_x_map = loadTextureHDR(skybox_irradiance_map.positive_x_map);
-        std::shared_ptr<TextureData> irradiace_neg_x_map = loadTextureHDR(skybox_irradiance_map.negative_x_map);
-        std::shared_ptr<TextureData> irradiace_pos_y_map = loadTextureHDR(skybox_irradiance_map.positive_y_map);
-        std::shared_ptr<TextureData> irradiace_neg_y_map = loadTextureHDR(skybox_irradiance_map.negative_y_map);
-        std::shared_ptr<TextureData> irradiace_pos_z_map = loadTextureHDR(skybox_irradiance_map.positive_z_map);
-        std::shared_ptr<TextureData> irradiace_neg_z_map = loadTextureHDR(skybox_irradiance_map.negative_z_map);
+        std::shared_ptr<BoxTextureData> irradiance_maps = loadBoxTexture(level_resource_desc.ibl_resource_desc.skybox_irradiance_map);
 
         // sky box specular
-        SkyBoxSpecularMap            skybox_specular_map = level_resource_desc.ibl_resource_desc.skybox_specular_map;
-        std::shared_ptr<TextureData> specular_pos_x_map  = loadTextureHDR(skybox_specular_map.positive_x_map);
-        std::shared_ptr<TextureData> specular_neg_x_map  = loadTextureHDR(skybox_specular_map.negative_x_map);
-        std::shared_ptr<TextureData> specular_pos_y_map  = loadTextureHDR(skybox_specular_map.positive_y_map);
-        std::shared_ptr<TextureData> specular_neg_y_map  = loadTextureHDR(skybox_specular_map.negative_y_map);
-        std::shared_ptr<TextureData> specular_pos_z_map  = loadTextureHDR(skybox_specular_map.positive_z_map);
-        std::shared_ptr<TextureData> specular_neg_z_map  = loadTextureHDR(skybox_specular_map.negative_z_map);
+        std::shared_ptr<BoxTextureData> specular_maps = loadBoxTexture(level_resource_desc.ibl_resource_desc.skybox_specular_map);
 
         // brdf
         std::shared_ptr<TextureData> brdf_map = loadTextureHDR(level_resource_desc.ibl_resource_desc.brdf_map);
 
         // create IBL samplers
         createIBLSamplers(rhi);
-
-        // create IBL textures, take care of the texture order
-        std::array<std::shared_ptr<TextureData>, 6> irradiance_maps = {irradiace_pos_x_map,
-                                                                       irradiace_neg_x_map,
-                                                                       irradiace_pos_z_map,
-                                                                       irradiace_neg_z_map,
-                                                                       irradiace_pos_y_map,
-                                                                       irradiace_neg_y_map};
-        std::array<std::shared_ptr<TextureData>, 6> specular_maps   = {specular_pos_x_map,
-                                                                     specular_neg_x_map,
-                                                                     specular_pos_z_map,
-                                                                     specular_neg_z_map,
-                                                                     specular_pos_y_map,
-                                                                     specular_neg_y_map};
-
+        // swap irradiance_maps specular_maps y axis to z axis
         createIBLTextures(rhi, irradiance_maps, specular_maps);
 
         // 创建 _brdfLUT_texture_image 纹理三件套
@@ -197,48 +170,59 @@ namespace Pupil {
     }
 
     void RenderResource::createIBLTextures(std::shared_ptr<VulkanRHI> rhi, 
-        std::array<std::shared_ptr<TextureData>, 6> irradiance_maps, 
-        std::array<std::shared_ptr<TextureData>, 6> specular_maps
+        std::shared_ptr<BoxTextureData> irradiance_maps, 
+        std::shared_ptr<BoxTextureData> specular_maps
     ) {
         // 计算mipmap等级
-        uint32_t irradiance_cubemap_miplevels = static_cast<uint32_t>(std::floor(log2(std::max(irradiance_maps[0]->width, irradiance_maps[0]->height)))) + 1;
+        uint32_t irradiance_cubemap_miplevels = static_cast<uint32_t>(std::floor(log2(std::max(irradiance_maps->positive_x_map->width, irradiance_maps->positive_x_map->height)))) + 1;
         // 创建vulkan可用的_irradiance_texture_image贴图三件套
         rhi->createCubeMap(
             global_render_resource._ibl_resource._irradiance_texture_image,
             global_render_resource._ibl_resource._irradiance_texture_image_view,
             global_render_resource._ibl_resource._irradiance_texture_image_allocation,
-            irradiance_maps[0]->width,
-            irradiance_maps[0]->height,
+            irradiance_maps->positive_x_map->width,
+            irradiance_maps->positive_x_map->height,
             { 
-                irradiance_maps[0]->pixels,
-                irradiance_maps[1]->pixels,
-                irradiance_maps[2]->pixels,
-                irradiance_maps[3]->pixels,
-                irradiance_maps[4]->pixels,
-                irradiance_maps[5]->pixels 
+                irradiance_maps->positive_x_map->pixels,
+                irradiance_maps->negative_x_map->pixels,
+                irradiance_maps->positive_z_map->pixels,
+                irradiance_maps->negative_z_map->pixels,
+                irradiance_maps->positive_y_map->pixels,
+                irradiance_maps->negative_y_map->pixels 
             },
-            irradiance_maps[0]->format,
+            irradiance_maps->positive_x_map->format,
             irradiance_cubemap_miplevels
         );
 
-        uint32_t specular_cubemap_miplevels = static_cast<uint32_t>(std::floor(log2(std::max(specular_maps[0]->width, specular_maps[0]->height)))) + 1;
+        uint32_t specular_cubemap_miplevels = static_cast<uint32_t>(std::floor(log2(std::max(specular_maps->positive_x_map->width, specular_maps->positive_x_map->height)))) + 1;
         // 创建vulkan可用的_specular_texture_image贴图三件套
         rhi->createCubeMap(
             global_render_resource._ibl_resource._specular_texture_image,
             global_render_resource._ibl_resource._specular_texture_image_view,
             global_render_resource._ibl_resource._specular_texture_image_allocation,
-            specular_maps[0]->width,
-            specular_maps[0]->height,
+            specular_maps->positive_x_map->width,
+            specular_maps->positive_x_map->height,
             { 
-                specular_maps[0]->pixels,
-                specular_maps[1]->pixels,
-                specular_maps[2]->pixels,
-                specular_maps[3]->pixels,
-                specular_maps[4]->pixels,
-                specular_maps[5]->pixels 
+                specular_maps->positive_x_map->pixels,
+                specular_maps->negative_x_map->pixels,
+                specular_maps->positive_z_map->pixels,
+                specular_maps->negative_z_map->pixels,
+                specular_maps->positive_y_map->pixels,
+                specular_maps->negative_y_map->pixels 
             },
-            specular_maps[0]->format,
+            specular_maps->positive_x_map->format,
             specular_cubemap_miplevels
+        );
+    }
+
+    std::shared_ptr<BoxTextureData> RenderResource::loadBoxTexture(BoxMapBase boxMap) {
+        return std::make_shared<BoxTextureData>(
+            loadTextureHDR(boxMap.positive_x_map),
+            loadTextureHDR(boxMap.negative_x_map),
+            loadTextureHDR(boxMap.positive_y_map),
+            loadTextureHDR(boxMap.negative_y_map),
+            loadTextureHDR(boxMap.positive_z_map),
+            loadTextureHDR(boxMap.negative_z_map)
         );
     }
 }

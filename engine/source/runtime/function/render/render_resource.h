@@ -9,6 +9,7 @@
 
 #include "runtime/function/render/render_swap_context.h"
 #include "runtime/function/render/render_resource_base.h"
+#include "runtime/resource/type/global/global_rendering.h"
 
 namespace Pupil {
     class VulkanRHI;
@@ -76,6 +77,8 @@ namespace Pupil {
     private:
         void createAndMapStorageBuffer(std::shared_ptr<VulkanRHI> rhi);
         void createIBLSamplers(std::shared_ptr<VulkanRHI> rhi);
-        void createIBLTextures(std::shared_ptr<VulkanRHI> rhi, std::array<std::shared_ptr<TextureData>, 6> irradiance_maps, std::array<std::shared_ptr<TextureData>, 6> specular_maps);
+        void createIBLTextures(std::shared_ptr<VulkanRHI> rhi, std::shared_ptr<BoxTextureData> irradiance_maps, std::shared_ptr<BoxTextureData> specular_maps);
+
+        std::shared_ptr<BoxTextureData> loadBoxTexture(BoxMapBase boxMap);
     };
 }

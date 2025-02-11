@@ -30,5 +30,50 @@ namespace Pupil {
         }
         bool isValid() const { return pixels != nullptr; }
     };
+
+    class BoxTextureData {
+    public:
+        std::shared_ptr<TextureData> negative_x_map;
+        std::shared_ptr<TextureData> positive_x_map;
+        std::shared_ptr<TextureData> negative_y_map;
+        std::shared_ptr<TextureData> positive_y_map;
+        std::shared_ptr<TextureData> negative_z_map;
+        std::shared_ptr<TextureData> positive_z_map;
+
+        BoxTextureData(
+            std::shared_ptr<TextureData> positive_x,
+            std::shared_ptr<TextureData> negative_x,
+            std::shared_ptr<TextureData> positive_y,
+            std::shared_ptr<TextureData> negative_y,
+            std::shared_ptr<TextureData> positive_z,
+            std::shared_ptr<TextureData> negative_z
+        ) {
+            negative_x_map = negative_x;
+            positive_x_map = positive_x;
+            negative_y_map = negative_y;
+            positive_y_map = positive_y;
+            negative_z_map = negative_z;
+            positive_z_map = positive_z;
+        }
+    };
+
+    // 通用buffer
+    class BufferData {
+    public:
+        size_t size {0};
+        void*  data {nullptr};
+
+        BufferData() = delete;
+        BufferData(size_t size) {
+            size = size;
+            data = malloc(size);
+        }
+        ~BufferData() {
+            if (data) {
+                free(data);
+            }
+        }
+        bool isValid() const { return data != nullptr; }
+    };
 }
 #endif

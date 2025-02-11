@@ -8,10 +8,13 @@
 #include "runtime/tools/reflection/reflection.h"
 
 namespace Pupil {
-    REFLECTION_TYPE(SkyBoxIrradianceMap)
-    CLASS(SkyBoxIrradianceMap, Fields) {
-        REFLECTION_BODY(SkyBoxIrradianceMap);
+    REFLECTION_TYPE(BoxMapBase)
+    CLASS(BoxMapBase, Fields) {
+        REFLECTION_BODY(BoxMapBase);
     public:
+        BoxMapBase() = default;
+        ~BoxMapBase() = default;
+
         std::string negative_x_map;
         std::string positive_x_map;
         std::string negative_y_map;
@@ -20,16 +23,16 @@ namespace Pupil {
         std::string positive_z_map;
     };
 
+    REFLECTION_TYPE(SkyBoxIrradianceMap)
+    CLASS(SkyBoxIrradianceMap : public BoxMapBase, Fields) {
+        REFLECTION_BODY(SkyBoxIrradianceMap);
+    public:
+    };
+
     REFLECTION_TYPE(SkyBoxSpecularMap)
-    CLASS(SkyBoxSpecularMap, Fields) {
+    CLASS(SkyBoxSpecularMap : public BoxMapBase, Fields) {
         REFLECTION_BODY(SkyBoxSpecularMap);
     public:
-        std::string negative_x_map;
-        std::string positive_x_map;
-        std::string negative_y_map;
-        std::string positive_y_map;
-        std::string negative_z_map;
-        std::string positive_z_map;
     };
 
     REFLECTION_TYPE(DirectionalLight)
@@ -50,9 +53,9 @@ namespace Pupil {
         std::string         brdf_map;
         std::string         color_grading_map;
 
-        Color            sky_color;
-        Color            ambient_light;
-        CameraConfig     camera_config;
-        DirectionalLight directional_light;
+        Color             sky_color;
+        Color             ambient_light;
+        CameraConfig      camera_config;
+        DirectionalLight  directional_light;
     };
 }
